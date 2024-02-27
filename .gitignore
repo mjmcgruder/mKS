@@ -1,0 +1,9 @@
+# local dirs
+bin
+
+# clangd
+.cache
+compile_commands.json
+
+# python
+*__pycache__*
