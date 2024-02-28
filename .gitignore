@@ -7,3 +7,6 @@ compile_commands.json
 
 # python
 *__pycache__*
+
+# python-lsp-server
+.ropeproject
