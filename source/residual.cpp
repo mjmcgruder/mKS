@@ -1,0 +1,147 @@
+#pragma once
+
+
+#include "basis.cpp"
+#include "math.cpp"
+#include "quadrature.cpp"
+
+
+// Structure containing discretization information with the resulting
+// pre-computed quantities. For now, all elements are the same size and the same
+// order to keep things simple.
+struct comp_geom
+{
+  double l;   // domain length
+  usize  ne;  // number of elements
+  usize  p;   // element order (all elements same order for now)
+
+  quadrature_rule qrule;
+
+  // Jacobian / determinant
+  // Only one for now, all elements are same size and geometry within elements
+  // is linear. Change this to a per-element Jacobian later.
+  double J;
+
+  // mass matrix
+  // Only a single mass matrix for now since all elements are the same order and
+  // the Jacobian determinant is constant wihtin elements. Change this to one
+  // mass matrix per order later.
+  double* Minv;
+
+  // pre-computed element interior basis functions
+  // [qp [bf]]
+  double* iqp_bf_arr;
+
+  // pre-computed element interior basis function gradients
+  // [qp [bf]]
+  double* iqp_d1_arr;
+
+  // pre-computed element edge basis functions
+  // [l/h [bf]]
+  double* edg_bf_arr;
+
+  // ---
+
+  enum struct elem_side
+  {
+    low  = 0,
+    high = 1,
+  };
+
+  double& iqp_bf(usize qp, usize bf);
+  double& iqp_d1(usize qp, usize bf);
+  double& edg_bf(elem_side side, usize bf);
+
+  // ---
+
+  comp_geom(double l_, usize ne_, usize p_);
+  ~comp_geom();
+
+  comp_geom(const comp_geom& oth)            = delete;
+  comp_geom(comp_geom&& oth)                 = delete;
+  comp_geom& operator=(const comp_geom& oth) = delete;
+  comp_geom& operator=(comp_geom&& oth)      = delete;
+};
+
+
+double& comp_geom::iqp_bf(usize qp, usize bf)
+{
+  return iqp_bf_arr[(p + 1) * qp + bf];
+}
+
+double& comp_geom::iqp_d1(usize qp, usize bf)
+{
+  return iqp_d1_arr[(p + 1) * qp + bf];
+}
+
+double& comp_geom::edg_bf(elem_side side, usize bf)
+{
+  return edg_bf_arr[(p + 1) * usize(side) + bf];
+}
+
+
+comp_geom::comp_geom(double l_, usize ne_, usize p_)
+{
+  l  = l_;
+  ne = ne_;
+  p  = p_;
+
+  qrule = get_quadrature_rule(p);
+
+  J = 0.5 * (l / double(ne));
+
+  // interior basis functions
+
+  iqp_bf_arr = new double[qrule.n * (p + 1)];
+  iqp_d1_arr = new double[qrule.n * (p + 1)];
+
+  for (usize iq = 0; iq < qrule.n; ++iq)
+  {
+    lagrange_chebyshev_bf(p, qrule.x[iq], &iqp_bf(iq, 0));
+    lagrange_chebyshev_d1(p, qrule.x[iq], &iqp_d1(iq, 0));
+  }
+
+  // edge basis functions
+
+  edg_bf_arr = new double[2 * (p + 1)];
+
+  lagrange_chebyshev_bf(p, -1., &edg_bf(elem_side::low, 0));
+  lagrange_chebyshev_bf(p, +1., &edg_bf(elem_side::high, 0));
+
+  // make and invert mass matrix
+
+  Minv       = new double[(p + 1) * (p + 1)];
+  double * M = new double[(p + 1) * (p + 1)];
+
+  for (usize tf = 0; tf < p + 1; ++tf)
+  {
+    for (usize bf = tf; bf < p + 1; ++bf)
+    {
+      double acc = 0.;
+      for (usize iq = 0; iq < qrule.n; ++iq)
+      {
+        acc += iqp_bf(iq, tf) * iqp_bf(iq, bf) * qrule.w[iq];
+      }
+      M[(p + 1) * tf + bf] = acc;
+      M[(p + 1) * bf + tf] = acc;
+    }
+  }
+
+  invert_matrix(M, p + 1, Minv);
+
+  delete[] M;
+}
+
+
+comp_geom::~comp_geom()
+{
+  delete[] Minv;
+  delete[] iqp_bf_arr;
+  delete[] iqp_d1_arr;
+  delete[] edg_bf_arr;
+}
+
+
+struct state
+{
+};

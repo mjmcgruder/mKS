@@ -1,7 +1,10 @@
+#pragma once
+
+
 #include "types.cpp"
 
 
-void basis(usize p, double x, double* b)
+void lagrange_chebyshev_bf(usize p, double x, double* b)
 {
   switch(p)
   {
@@ -70,7 +73,7 @@ void basis(usize p, double x, double* b)
 }
 
 
-void d1basis(usize p, double x, double* b)
+void lagrange_chebyshev_d1(usize p, double x, double* b)
 {
   switch(p)
   {
@@ -139,7 +142,7 @@ void d1basis(usize p, double x, double* b)
 }
 
 
-void d2basis(usize p, double x, double* b)
+void lagrange_chebyshev_d2(usize p, double x, double* b)
 {
   switch(p)
   {
@@ -208,7 +211,7 @@ void d2basis(usize p, double x, double* b)
 }
 
 
-void d3basis(usize p, double x, double* b)
+void lagrange_chebyshev_d3(usize p, double x, double* b)
 {
   switch(p)
   {
@@ -277,7 +280,7 @@ void d3basis(usize p, double x, double* b)
 }
 
 
-void d4basis(usize p, double x, double* b)
+void lagrange_chebyshev_d4(usize p, double x, double* b)
 {
   switch(p)
   {

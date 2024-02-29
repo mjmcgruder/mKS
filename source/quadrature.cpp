@@ -7,7 +7,7 @@
 #include "types.cpp"
 
 
-struct qrule
+struct quadrature_rule
 {
   usize         n;
   const double* x;
@@ -49,7 +49,7 @@ const double gauss_legendre_n8_w[gauss_legendre_n8_n] = {+1.01228536290375620e-0
 
 
 const usize num_gauss_legendre_rules = 8;
-qrule gauss_legendre_rules[num_gauss_legendre_rules] = {
+quadrature_rule gauss_legendre_rules[num_gauss_legendre_rules] = {
   {gauss_legendre_n1_n, gauss_legendre_n1_x, gauss_legendre_n1_w},
   {gauss_legendre_n2_n, gauss_legendre_n2_x, gauss_legendre_n2_w},
   {gauss_legendre_n3_n, gauss_legendre_n3_x, gauss_legendre_n3_w},
@@ -70,7 +70,7 @@ qrule gauss_legendre_rules[num_gauss_legendre_rules] = {
 // polynomials of order 2 * p + 1 exactly, but extra points may be optionally
 // requested.
 
-qrule get_qrule(usize p, usize extra_points = 0)
+quadrature_rule get_quadrature_rule(usize p, usize extra_points = 0)
 {
   usize n        = p + 1 + extra_points;
   usize rule_num = n - 1;

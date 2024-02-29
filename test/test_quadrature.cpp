@@ -51,7 +51,7 @@ int test_quadrature()
     // find smallest n to integrate polynomial of order o exactly
     usize n = (usize)ceil((double(o) + 1.) / 2.);
 
-    qrule rule = gauss_legendre_rules[n - 1];
+    quadrature_rule rule = gauss_legendre_rules[n - 1];
 
     double integral = 0.;
     for (usize i = 0; i < rule.n; ++i)
