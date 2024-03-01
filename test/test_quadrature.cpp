@@ -62,7 +62,7 @@ int test_quadrature()
     if ((answers[o] - integral) > 1e-14)
     {
       printf("quadrature test failed at order %zu!\n", o);
-      exit(1);
+      return 1;
     }
   }
 
