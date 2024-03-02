@@ -110,8 +110,8 @@ comp_geom::comp_geom(double l_, usize ne_, usize p_)
 
   // make and invert mass matrix
 
-  Minv       = new double[(p + 1) * (p + 1)];
-  double * M = new double[(p + 1) * (p + 1)];
+  Minv      = new double[(p + 1) * (p + 1)];
+  double* M = new double[(p + 1) * (p + 1)];
 
   for (usize tf = 0; tf < p + 1; ++tf)
   {
