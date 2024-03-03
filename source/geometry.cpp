@@ -6,6 +6,13 @@
 #include "quadrature.cpp"
 
 
+enum struct elem_side
+{
+  low  = 0,
+  high = 1,
+};
+
+
 // Structure containing discretization information with the resulting
 // pre-computed quantities. For now, all elements are the same size and the same
 // order to keep things simple.
@@ -15,6 +22,9 @@ struct comp_geom
   usize  ne;  // number of elements
   usize  p;   // element order (all elements same order for now)
 
+  // Quadrature rule sufficient for integrating polynomials of order 2 * p + 1
+  // exactly. This should turn into a set of different quadrature rules when
+  // variable order is supported. Or maybe just a single highest-order rule.
   quadrature_rule qrule;
 
   // Jacobian / determinant
@@ -42,15 +52,15 @@ struct comp_geom
 
   // ---
 
-  enum struct elem_side
-  {
-    low  = 0,
-    high = 1,
-  };
-
   double& iqp_bf(usize qp, usize bf);
   double& iqp_d1(usize qp, usize bf);
   double& edg_bf(elem_side side, usize bf);
+
+  double& idx_st(double* state, usize e, usize bf);
+
+  // ---
+
+  usize size_st();
 
   // ---
 
@@ -77,6 +87,17 @@ double& comp_geom::iqp_d1(usize qp, usize bf)
 double& comp_geom::edg_bf(elem_side side, usize bf)
 {
   return edg_bf_arr[(p + 1) * usize(side) + bf];
+}
+
+double& comp_geom::idx_st(double* state, usize e, usize bf)
+{
+  return state[(p + 1) * e + bf];
+}
+
+
+usize comp_geom::size_st()
+{
+  return ne * (p + 1);
 }
 
 
@@ -140,8 +161,3 @@ comp_geom::~comp_geom()
   delete[] iqp_d1_arr;
   delete[] edg_bf_arr;
 }
-
-
-struct state
-{
-};
