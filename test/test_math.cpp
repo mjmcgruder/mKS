@@ -98,7 +98,7 @@ int test_matmul()
 {
   double C[200];
 
-  matmul(10, 20, 10, A, B, C);
+  matmul(10, 20, 10, 1., A, 0., B, C);
 
   bool equal = test_matrices_equal(AxB, C, 200, 1e-18);
 
