@@ -1,21 +1,20 @@
 #include "time.cpp"
+#include "initialization.cpp"
 
 
 int main()
 {
   const usize  ne = 10;
-  const usize  p  = 4;
-  const usize  nt = 1000;
+  const usize  p  = 0;
+  const usize  nt = 10;
   const double dt = 0.1;
 
   comp_geom geom(1., ne, p);
 
   double* state = new double[geom.size_st()];
 
-  for (usize i = 0; i < geom.size_st(); ++i)
-  {
-    state[i] = 3.14;
-  }
+  // init_constant(geom, 3.14, state);
+  init_gaussian(geom, 1., 0.5, 0.2, state);
 
   euler(geom, nt, dt, state);
 

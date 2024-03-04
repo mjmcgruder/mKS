@@ -1,7 +1,18 @@
 #pragma once
 
 
+#include <cmath>
+
 #include "types.cpp"
+
+
+void lagrange_nodes(usize p, double* n)
+{
+  for (usize i = 0; i < p + 1; ++i)
+  {
+    n[i] = cos(((2. * double(i + 1) - 1.) / (2. * (double(p) + 1.))) * PI);
+  }
+}
 
 
 void lagrange_chebyshev_bf(usize p, double x, double* b)

@@ -27,7 +27,7 @@ void euler(comp_geom& geom, usize nt, double dt, double* state)
   {
     compute_residual(geom, state, resid, f);
 
-    printf("%+.3e\n", norm2(f, geom.size_st()));
+    printf("%zu: %+.3e\n", it, norm2(f, geom.size_st()));
 
     for (usize i = 0; i < geom.size_st(); ++i)
     {

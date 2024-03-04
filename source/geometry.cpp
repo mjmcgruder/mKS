@@ -22,15 +22,21 @@ struct comp_geom
   usize  ne;  // number of elements
   usize  p;   // element order (all elements same order for now)
 
-  // Quadrature rule sufficient for integrating polynomials of order 2 * p + 1
-  // exactly. This should turn into a set of different quadrature rules when
-  // variable order is supported. Or maybe just a single highest-order rule.
-  quadrature_rule qrule;
+  // geometry ---
 
   // Jacobian / determinant
   // Only one for now, all elements are same size and geometry within elements
   // is linear. Change this to a per-element Jacobian later.
   double J;
+
+  double ref2glo(usize e, double xi);
+
+  // pre-computes ---
+
+  // Quadrature rule sufficient for integrating polynomials of order 2 * p + 1
+  // exactly. This should turn into a set of different quadrature rules when
+  // variable order is supported. Or maybe just a single highest-order rule.
+  quadrature_rule qrule;
 
   // mass matrix
   // Only a single mass matrix for now since all elements are the same order and
@@ -50,7 +56,7 @@ struct comp_geom
   // [l/h [bf]]
   double* edg_bf_arr;
 
-  // ---
+  // array indexing ---
 
   double& iqp_bf(usize qp, usize bf);
   double& iqp_d1(usize qp, usize bf);
@@ -58,11 +64,11 @@ struct comp_geom
 
   double& idx_st(double* state, usize e, usize bf);
 
-  // ---
+  // array sizing ---
 
   usize size_st();
 
-  // ---
+  // constructors etc. ---
 
   comp_geom(double l_, usize ne_, usize p_);
   ~comp_geom();
@@ -72,6 +78,13 @@ struct comp_geom
   comp_geom& operator=(const comp_geom& oth) = delete;
   comp_geom& operator=(comp_geom&& oth)      = delete;
 };
+
+
+double comp_geom::ref2glo(usize e, double xi)
+{
+  double elen = l / double(ne);
+  return (double(e) * elen) + ((xi + 1.) * J);
+}
 
 
 double& comp_geom::iqp_bf(usize qp, usize bf)
