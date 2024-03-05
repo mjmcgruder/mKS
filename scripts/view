@@ -1,0 +1,67 @@
+#!/bin/env python3
+
+
+import numpy             as np
+import matplotlib.pyplot as plt
+
+from struct      import unpack
+from dataclasses import dataclass
+from gen_bfuncs  import lagrange1d
+
+
+@dataclass
+class comp_geom:
+  l:  float
+  ne: int
+  p:  int
+
+
+def read_state(filename):
+
+  f = open(filename, 'rb')
+  b = f.read()
+
+  l, ne, p = unpack('@dNN', b[:24])
+  geom     = comp_geom(l, ne, p)
+
+  state_size = (geom.p + 1) * geom.ne
+
+  state = unpack(f'@{state_size}d', b[24:])
+  state = np.array(state)
+  state = np.reshape(state, (geom.ne, geom.p + 1));
+
+  f.close()
+
+  return geom, state
+
+
+if __name__ == '__main__':
+
+  print('reading state...')
+
+  geom, state = read_state('state.ks')
+
+  print('pre-computing basis functions...')
+
+  npos = 100
+  p    = np.linspace(-1., 1., npos)
+
+  basis = np.empty((geom.p + 1, npos))
+
+  for ib in range(geom.p + 1):
+    for ip in range(npos):
+      basis[ib, ip] = lagrange1d(ib, geom.p, p[ip])
+
+  plotting_state = np.transpose(state @ basis)
+
+  print('computing x-axis positions...')
+
+  elem_len     = geom.l / geom.ne
+  plotting_pos = np.empty((npos, geom.ne))
+  for ie in range(geom.ne):
+    plotting_pos[:, ie] = ie * elem_len + (0.5 * (p + 1.)) * elem_len
+
+  print('plotting...')
+
+  plt.plot(plotting_pos, plotting_state, 'k')
+  plt.show()

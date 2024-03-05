@@ -76,7 +76,7 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
   for (usize ei = 0; ei < geom.ne; ++ei)
   {
     usize  pp1 = geom.p + 1;
-    double J   = geom.J;
-    matmul(pp1, 1, pp1, -J, geom.Minv, 0., resid + ei * pp1, f + ei * pp1);
+    double iJ  = 1. / geom.J;
+    matmul(pp1, 1, pp1, -iJ, geom.Minv, 0., resid + ei * pp1, f + ei * pp1);
   }
 }
