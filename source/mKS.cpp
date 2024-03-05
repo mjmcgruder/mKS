@@ -5,10 +5,10 @@
 
 int main()
 {
-  const usize  ne = 100;
-  const usize  p  = 7;
-  const usize  nt = 500;
-  const double dt = 0.0001;
+  const usize  ne = 10;
+  const usize  p  = 2;
+  const usize  nt = 10000;
+  const double dt = 0.01;
 
   comp_geom geom(1., ne, p);
 
@@ -16,7 +16,7 @@ int main()
 
   init_gaussian(geom, 1., 0.5, 0.1, state);
 
-  euler(geom, nt, dt, state);
+  rk4(geom, nt, dt, state);
 
   write_state(geom, state, "state.ks");
 

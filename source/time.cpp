@@ -27,7 +27,7 @@ void euler(comp_geom& geom, usize nt, double dt, double* state)
   {
     compute_residual(geom, state, resid, f);
 
-    printf("%zu: %+.3e %+.3e\n", it, norm2(f, geom.size_st()), norm2(resid, geom.size_st()));
+    printf("%zu: %+.3e\n", it, norm2(f, geom.size_st()));
 
     for (usize i = 0; i < geom.size_st(); ++i)
     {
@@ -40,6 +40,51 @@ void euler(comp_geom& geom, usize nt, double dt, double* state)
 }
 
 
-void rk4()
+void rk4(comp_geom& geom, usize nt, double dt, double* y1)
 {
+  double* resid = new double[geom.size_st()];
+
+  double* k1 = new double[geom.size_st()];
+  double* k2 = new double[geom.size_st()];
+  double* k3 = new double[geom.size_st()];
+  double* k4 = new double[geom.size_st()];
+
+  double* y2 = new double[geom.size_st()];
+  double* y3 = new double[geom.size_st()];
+  double* y4 = new double[geom.size_st()];
+
+  for (usize it = 0; it < nt; ++it)
+  {
+    compute_residual(geom, y1, resid, k1);
+
+    printf("%zu: %+.3e\n", it, norm2(k1, geom.size_st()));
+
+    for (usize i = 0; i < geom.size_st(); ++i) y2[i] = y1[i] + 0.5 * dt * k1[i];
+
+    compute_residual(geom, y2, resid, k2);
+
+    for (usize i = 0; i < geom.size_st(); ++i) y3[i] = y1[i] + 0.5 * dt * k2[i];
+
+    compute_residual(geom, y3, resid, k3);
+
+    for (usize i = 0; i < geom.size_st(); ++i) y4[i] = y1[i] + dt * k3[i];
+
+    compute_residual(geom, y4, resid, k4);
+
+    for (usize i = 0; i < geom.size_st(); ++i)
+    {
+      y1[i] += (dt / 6.) * (k1[i] + 2. * k2[i] + 2. * k3[i] + k4[i]);
+    }
+  }
+
+  delete[] resid;
+
+  delete[] k1;
+  delete[] k2;
+  delete[] k3;
+  delete[] k4;
+
+  delete[] y2;
+  delete[] y3;
+  delete[] y4;
 }
