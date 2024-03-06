@@ -6,9 +6,9 @@
 int main()
 {
   const usize  ne = 10;
-  const usize  p  = 2;
-  const usize  nt = 10000;
-  const double dt = 0.01;
+  const usize  p  = 7;
+  const usize  nt = 100;
+  const double dt = 0.001;
 
   comp_geom geom(1., ne, p);
 

@@ -30,12 +30,21 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         s += geom.iqp_bf(qi, bi) * geom.idx_st(state, ei, bi);
       }
 
-      double flux = a * s;
+      // // advective term
+      // double advective_flux = a * s;
+
+      // nonlinear term
+      double nonlinear_flux = 0.5 * s * s;
 
       for (usize ti = 0; ti < pp1; ++ti)
       {
+        // // advective term
+        // geom.idx_st(resid, ei, ti) -=
+        //   (geom.iqp_d1(qi, ti) * iJ) * advective_flux * J * geom.qrule.w[qi];
+
+        // nonlinear term
         geom.idx_st(resid, ei, ti) -=
-          (geom.iqp_d1(qi, ti) * iJ) * flux * J * geom.qrule.w[qi];
+          (geom.iqp_d1(qi, ti) * iJ) * nonlinear_flux * J * geom.qrule.w[qi];
       }
     }
   }
@@ -60,14 +69,25 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       sr += geom.edg_bf(elem_side::low,  bi) * geom.idx_st(state, er, bi);
     }
 
-    double fl   = a * sl;
-    double fr   = a * sr;
-    double flux = 0.5 * ((fl + fr) - std::abs(a) * (sr - sl));
+    // // advective term
+    // double ad_fl   = a * sl;
+    // double ad_fr   = a * sr;
+    // double ad_flux = 0.5 * ((ad_fl + ad_fr) - std::abs(a) * (sr - sl));
+
+    // nonlinear term
+    double nl_fl   = 0.5 * sl * sl;
+    double nl_fr   = 0.5 * sr * sr;
+    double nl_flux = 0.5 * ((nl_fl + nl_fr) - std::abs(a) * (sr - sl));
 
     for (usize ti = 0; ti < pp1; ++ti)
     {
-      geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * flux;
-      geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * flux;
+      // // advective term
+      // geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * ad_flux;
+      // geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * ad_flux;
+
+      // nonlinear term
+      geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * nl_flux;
+      geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * nl_flux;
     }
   }
 
