@@ -29,6 +29,7 @@ struct comp_geom
   // is linear. Change this to a per-element Jacobian later.
   double J;
 
+  double elem_len(usize e);
   double ref2glo(usize e, double xi);
 
   // pre-computes ---
@@ -56,11 +57,16 @@ struct comp_geom
   // [l/h [bf]]
   double* edg_bf_arr;
 
+  // pre-computed element edge basis function gradients
+  // [l/h [bf]]
+  double* edg_d1_arr;
+
   // array indexing ---
 
   double& iqp_bf(usize qp, usize bf);
   double& iqp_d1(usize qp, usize bf);
   double& edg_bf(elem_side side, usize bf);
+  double& edg_d1(elem_side side, usize bf);
 
   double& idx_st(double* state, usize e, usize bf);
 
@@ -80,9 +86,14 @@ struct comp_geom
 };
 
 
+double comp_geom::elem_len(usize e)
+{
+  return l / double(ne);
+}
+
 double comp_geom::ref2glo(usize e, double xi)
 {
-  double elen = l / double(ne);
+  double elen = elem_len(e);
   return (double(e) * elen) + ((xi + 1.) * J);
 }
 
@@ -100,6 +111,11 @@ double& comp_geom::iqp_d1(usize qp, usize bf)
 double& comp_geom::edg_bf(elem_side side, usize bf)
 {
   return edg_bf_arr[(p + 1) * usize(side) + bf];
+}
+
+double& comp_geom::edg_d1(elem_side side, usize bf)
+{
+  return edg_d1_arr[(p + 1) * usize(side) + bf];
 }
 
 double& comp_geom::idx_st(double* state, usize e, usize bf)
@@ -122,7 +138,7 @@ comp_geom::comp_geom(double l_, usize ne_, usize p_)
 
   qrule = get_quadrature_rule(p);
 
-  J = 0.5 * (l / double(ne));
+  J = 0.5 * elem_len(0);
 
   // interior basis functions
 
@@ -141,6 +157,13 @@ comp_geom::comp_geom(double l_, usize ne_, usize p_)
 
   lagrange_chebyshev_bf(p, -1., &edg_bf(elem_side::low, 0));
   lagrange_chebyshev_bf(p, +1., &edg_bf(elem_side::high, 0));
+
+  // edge basis function gradients
+
+  edg_d1_arr = new double[2 * (p + 1)];
+
+  lagrange_chebyshev_d1(p, -1., &edg_d1(elem_side::low, 0));
+  lagrange_chebyshev_d1(p, +1., &edg_d1(elem_side::high, 0));
 
   // make and invert mass matrix
 
@@ -173,4 +196,5 @@ comp_geom::~comp_geom()
   delete[] iqp_bf_arr;
   delete[] iqp_d1_arr;
   delete[] edg_bf_arr;
+  delete[] edg_d1_arr;
 }
