@@ -40,7 +40,7 @@ void euler(comp_geom& geom, usize nt, double dt, double* state)
 }
 
 
-void rk4(comp_geom& geom, usize nt, double dt, double* y1)
+void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
 {
   double* resid = new double[geom.size_st()];
 
@@ -55,6 +55,8 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1)
 
   for (usize it = 0; it < nt; ++it)
   {
+    memcpy(hist + it * geom.size_st(), y1, geom.size_st() * sizeof(double));
+
     compute_residual(geom, y1, resid, k1);
 
     printf("%zu: %+.3e\n", it, norm2(k1, geom.size_st()));
@@ -76,6 +78,8 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1)
       y1[i] += (dt / 6.) * (k1[i] + 2. * k2[i] + 2. * k3[i] + k4[i]);
     }
   }
+
+  memcpy(hist + nt * geom.size_st(), y1, geom.size_st() * sizeof(double));
 
   delete[] resid;
 
