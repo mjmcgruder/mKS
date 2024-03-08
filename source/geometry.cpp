@@ -45,28 +45,26 @@ struct comp_geom
   // mass matrix per order later.
   double* Minv;
 
-  // pre-computed element interior basis functions
-  // [qp [bf]]
+  // pre-computed element interior basis functions and derivatives [qp [bf]]
   double* iqp_bf_arr;
-
-  // pre-computed element interior basis function gradients
-  // [qp [bf]]
   double* iqp_d1_arr;
+  double* iqp_d2_arr;
 
-  // pre-computed element edge basis functions
-  // [l/h [bf]]
+  // pre-computed element edge basis functions and derivatives [l/h [bf]]
   double* edg_bf_arr;
-
-  // pre-computed element edge basis function gradients
-  // [l/h [bf]]
   double* edg_d1_arr;
+  double* edg_d2_arr;
+  double* edg_d3_arr;
 
   // array indexing ---
 
   double& iqp_bf(usize qp, usize bf);
   double& iqp_d1(usize qp, usize bf);
+  double& iqp_d2(usize qp, usize bf);
   double& edg_bf(elem_side side, usize bf);
   double& edg_d1(elem_side side, usize bf);
+  double& edg_d2(elem_side side, usize bf);
+  double& edg_d3(elem_side side, usize bf);
 
   double& idx_st(double* state, usize e, usize bf);
 
@@ -108,6 +106,11 @@ double& comp_geom::iqp_d1(usize qp, usize bf)
   return iqp_d1_arr[(p + 1) * qp + bf];
 }
 
+double& comp_geom::iqp_d2(usize qp, usize bf)
+{
+  return iqp_d2_arr[(p + 1) * qp + bf];
+}
+
 double& comp_geom::edg_bf(elem_side side, usize bf)
 {
   return edg_bf_arr[(p + 1) * usize(side) + bf];
@@ -116,6 +119,16 @@ double& comp_geom::edg_bf(elem_side side, usize bf)
 double& comp_geom::edg_d1(elem_side side, usize bf)
 {
   return edg_d1_arr[(p + 1) * usize(side) + bf];
+}
+
+double& comp_geom::edg_d2(elem_side side, usize bf)
+{
+  return edg_d2_arr[(p + 1) * usize(side) + bf];
+}
+
+double& comp_geom::edg_d3(elem_side side, usize bf)
+{
+  return edg_d3_arr[(p + 1) * usize(side) + bf];
 }
 
 double& comp_geom::idx_st(double* state, usize e, usize bf)
@@ -140,30 +153,37 @@ comp_geom::comp_geom(double l_, usize ne_, usize p_)
 
   J = 0.5 * elem_len(0);
 
-  // interior basis functions
+  // interior basis functions and gradients
 
   iqp_bf_arr = new double[qrule.n * (p + 1)];
   iqp_d1_arr = new double[qrule.n * (p + 1)];
+  iqp_d2_arr = new double[qrule.n * (p + 1)];
 
   for (usize iq = 0; iq < qrule.n; ++iq)
   {
     lagrange_chebyshev_bf(p, qrule.x[iq], &iqp_bf(iq, 0));
     lagrange_chebyshev_d1(p, qrule.x[iq], &iqp_d1(iq, 0));
+    lagrange_chebyshev_d2(p, qrule.x[iq], &iqp_d2(iq, 0));
   }
 
-  // edge basis functions
+  // edge basis functions and gradients
 
   edg_bf_arr = new double[2 * (p + 1)];
+  edg_d1_arr = new double[2 * (p + 1)];
+  edg_d2_arr = new double[2 * (p + 1)];
+  edg_d3_arr = new double[2 * (p + 1)];
 
   lagrange_chebyshev_bf(p, -1., &edg_bf(elem_side::low, 0));
   lagrange_chebyshev_bf(p, +1., &edg_bf(elem_side::high, 0));
 
-  // edge basis function gradients
-
-  edg_d1_arr = new double[2 * (p + 1)];
-
   lagrange_chebyshev_d1(p, -1., &edg_d1(elem_side::low, 0));
   lagrange_chebyshev_d1(p, +1., &edg_d1(elem_side::high, 0));
+
+  lagrange_chebyshev_d2(p, -1., &edg_d2(elem_side::low, 0));
+  lagrange_chebyshev_d2(p, +1., &edg_d2(elem_side::high, 0));
+
+  lagrange_chebyshev_d3(p, -1., &edg_d3(elem_side::low, 0));
+  lagrange_chebyshev_d3(p, +1., &edg_d3(elem_side::high, 0));
 
   // make and invert mass matrix
 
@@ -195,6 +215,9 @@ comp_geom::~comp_geom()
   delete[] Minv;
   delete[] iqp_bf_arr;
   delete[] iqp_d1_arr;
+  delete[] iqp_d2_arr;
   delete[] edg_bf_arr;
   delete[] edg_d1_arr;
+  delete[] edg_d2_arr;
+  delete[] edg_d3_arr;
 }
