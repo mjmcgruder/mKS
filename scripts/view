@@ -1,6 +1,7 @@
 #!/bin/env python3
 
 
+import sys
 import math
 import numpy                as np
 import matplotlib.pyplot    as plt
@@ -58,8 +59,12 @@ def read_hist(filename):
 
 if __name__ == '__main__':
 
-  eres          = 10
-  rend_interval = 30
+  if len(sys.argv) != 2:
+    print('Usage: view <rend interval>')
+    sys.exit(0)
+
+  eres          = 100
+  rend_interval = int(sys.argv[1])
 
   print('reading state...')
 
