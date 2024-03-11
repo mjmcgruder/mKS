@@ -44,7 +44,7 @@ void invert_matrix(double* a, int n, double* inv)
 // always transposed, so the input needs to change to compensate), and A and B
 // are already viewed as transposed due to row major ordering.
 
-void matmul(int m, int n, int k, double alpha, double* a, double* b, 
+void matmul(int m, int n, int k, double alpha, double* a, double* b,
             double beta, double* c)
 {
   char transp = 'n';

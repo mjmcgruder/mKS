@@ -3,19 +3,8 @@
 
 #include <cmath>
 
+#include "linalg.cpp"
 #include "residual.cpp"
-
-
-double norm2(double* a, usize len)
-{
-  double sum = 0.;
-  for (usize i = 0; i < len; ++i)
-  {
-    sum += a[i] * a[i];
-  }
-
-  return sqrt((1. / double(len)) * sum);
-}
 
 
 void euler(comp_geom& geom, usize nt, double dt, double* state)
@@ -27,7 +16,7 @@ void euler(comp_geom& geom, usize nt, double dt, double* state)
   {
     compute_residual(geom, state, resid, f);
 
-    printf("%zu: %+.3e\n", it, norm2(f, geom.size_st()));
+    printf("%zu: %+.3e\n", it, norm_perelem(f, geom.size_st()));
 
     for (usize i = 0; i < geom.size_st(); ++i)
     {
@@ -59,7 +48,7 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
 
     compute_residual(geom, y1, resid, k1);
 
-    printf("%zu: %+.3e\n", it, norm2(k1, geom.size_st()));
+    printf("%zu: %+.3e\n", it, norm_perelem(k1, geom.size_st()));
 
     for (usize i = 0; i < geom.size_st(); ++i) y2[i] = y1[i] + 0.5 * dt * k1[i];
 
