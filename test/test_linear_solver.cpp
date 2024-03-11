@@ -22,7 +22,7 @@ int test_GMRES()
 
   m__ = w * h;
 
-          A__ = new double[m__ * m__];
+          A__ = new double[m__ * m__]();
   double* x   = new double[m__];
   double* b   = new double[m__];
 
