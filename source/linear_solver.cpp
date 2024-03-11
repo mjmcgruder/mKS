@@ -7,7 +7,6 @@
 #include "linalg.cpp"
 
 
-// TODO: b needs to be norm 1?
 void GMRES(void (*matvec)(double* v, double* mv), double* b, usize m, double* x,
            usize ninner, usize nouter, double tol)
 {

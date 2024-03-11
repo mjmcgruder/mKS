@@ -22,11 +22,13 @@ int test_GMRES()
 
   m__ = w * h;
 
-          A__ = new double[m__ * m__]();
+          A__ = new double[m__ * m__];
   double* x   = new double[m__];
   double* b   = new double[m__];
 
   // system setup
+
+  memset(A__, 0, m__ * m__ * sizeof(double));
 
   usize Arow = 0;
   for (usize hi = 0; hi < h; ++hi)
@@ -48,18 +50,29 @@ int test_GMRES()
     }
   }
 
-  for (usize i = 0; i < m__; ++i) { x[i] = 1.; }
+  for (usize i = 0; i < m__; ++i) { x[i] = 1.; }  // manufacture solution to 1
   matmul(m__, 1, m__, 1., A__, x, 0., b);
 
   // testing...
 
   memset(x, 0, m__ * sizeof(double));
 
-  GMRES(matvec, b, m__, x, 100, 1, 1e-10);
+  GMRES(matvec, b, m__, x, 20, 1, 1e-17);
+
+  bool test_fail = false;
+  for (usize i = 0; i < m__; ++i)
+  {
+    double err = std::abs(1. - x[i]);
+    if (err > 1e-14)
+    {
+      test_fail = true;
+      printf("Solution deviation from 1. of %+17e!\n", err);
+    }
+  }
 
   delete[] A__;
   delete[] x;
   delete[] b;
 
-  return 0;
+  return (test_fail) ? 1 : 0;
 }
