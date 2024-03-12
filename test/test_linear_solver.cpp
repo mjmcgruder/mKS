@@ -5,13 +5,63 @@
 #include "linear_solver.cpp"
 
 
-usize   m__;
-double* A__;
-
-
-void matvec(double* v, double* res)
+struct test_system
 {
-  matmul(m__, 1, m__, 1., A__, v, 0., res);
+  double* A;
+  usize   m;
+
+  void matvec(double* v, double* mv);
+
+  // --
+
+  test_system(usize w, usize h);
+  ~test_system();
+
+  test_system(const test_system& oth)            = delete;
+  test_system(test_system&& oth)                 = delete;
+  test_system& operator=(const test_system& oth) = delete;
+  test_system& operator=(test_system&& oth)      = delete;
+};
+
+
+void test_system::matvec(double* v, double* mv)
+{
+  matmul(m, 1, m, 1., A, v, 0., mv);
+}
+
+
+test_system::test_system(usize w, usize h)
+{
+  m = w * h;
+  A = new double[m * m];
+
+  memset(A, 0, m * m * sizeof(double));
+
+  usize Arow = 0;
+  for (usize hi = 0; hi < h; ++hi)
+  {
+    for (usize wi = 0; wi < w; ++wi)
+    {
+      A[m * (Arow) + (Arow)] = +4.;
+
+      if (wi > 0)
+        A[m * (Arow) + (Arow - 1)] = -1.;
+      if (wi + 1 < w)
+        A[m * (Arow) + (Arow + 1)] = -1.;
+      if (hi > 0)
+        A[m * (Arow) + (Arow - w)] = -1.;
+      if (hi + 1 < h)
+        A[m * (Arow) + (Arow + w)] = -1.;
+
+      ++Arow;
+    }
+  }
+}
+
+
+test_system::~test_system()
+{
+  delete[] A;
 }
 
 
@@ -20,47 +70,23 @@ int test_GMRES()
   usize w = 10;
   usize h = 10;
 
-  m__ = w * h;
+  test_system sys(10, 10);
 
-          A__ = new double[m__ * m__];
-  double* x   = new double[m__];
-  double* b   = new double[m__];
+  double* x = new double[sys.m];
+  double* b = new double[sys.m];
 
-  // system setup
-
-  memset(A__, 0, m__ * m__ * sizeof(double));
-
-  usize Arow = 0;
-  for (usize hi = 0; hi < h; ++hi)
-  {
-    for (usize wi = 0; wi < w; ++wi)
-    {
-      A__[m__ * (Arow) + (Arow)] = +4.;
-
-      if (wi > 0)
-        A__[m__ * (Arow) + (Arow - 1)] = -1.;
-      if (wi + 1 < w)
-        A__[m__ * (Arow) + (Arow + 1)] = -1.;
-      if (hi > 0)
-        A__[m__ * (Arow) + (Arow - w)] = -1.;
-      if (hi + 1 < h)
-        A__[m__ * (Arow) + (Arow + w)] = -1.;
-
-      ++Arow;
-    }
-  }
-
-  for (usize i = 0; i < m__; ++i) { x[i] = 1.; }  // manufacture solution to 1
-  matmul(m__, 1, m__, 1., A__, x, 0., b);
+  // manufacture solution to 1
+  for (usize i = 0; i < sys.m; ++i) { x[i] = 1.; }
+  sys.matvec(x, b);
 
   // testing...
 
-  memset(x, 0, m__ * sizeof(double));
+  memset(x, 0, sys.m * sizeof(double));
 
-  GMRES(matvec, b, m__, x, 20, 1, 1e-17);
+  GMRES(sys, b, x, sys.m, 20, 1, 1e-17);
 
   bool test_fail = false;
-  for (usize i = 0; i < m__; ++i)
+  for (usize i = 0; i < sys.m; ++i)
   {
     double err = std::abs(1. - x[i]);
     if (err > 1e-14)
@@ -70,7 +96,6 @@ int test_GMRES()
     }
   }
 
-  delete[] A__;
   delete[] x;
   delete[] b;
 

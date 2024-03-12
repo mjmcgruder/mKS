@@ -7,8 +7,13 @@
 #include "linalg.cpp"
 
 
-void GMRES(void (*matvec)(double* v, double* mv), double* b, usize m, double* x,
-           usize ninner, usize nouter, double tol)
+// Solves Ax = b using GMRES until either the specified residual tolerance or
+// one of the maximum iteration counts is met. "A" is supplied as a functor 
+// allowing matrix free versions of the algorithm.
+
+template<typename T>
+void GMRES(T& A, double* b, double* x, usize m, usize ninner, usize nouter,
+           double tol)
 {
   // "solution" storage
   double* Qmat  = new double[m * (ninner + 1)];
@@ -37,7 +42,7 @@ void GMRES(void (*matvec)(double* v, double* mv), double* b, usize m, double* x,
     memset(sn,   0, ninner                * sizeof(double));
 
     // first normalized krylov vector
-    matvec(x, Ax);
+    A.matvec(x, Ax);
     for (usize i = 0; i < m; ++i) { r0[i] = b[i] - Ax[i]; }
     double r0_norm = norm(r0, m);
     for (usize i = 0; i < m; ++i) { Q(i, 0) = r0[i] / r0_norm; }
@@ -52,7 +57,7 @@ void GMRES(void (*matvec)(double* v, double* mv), double* b, usize m, double* x,
       /* Arnoldi */
 
       for (usize i = 0; i < m; ++i) { ki[i] = Q(i, n); }
-      matvec(ki, ko);  // copies for mem ordering, hmmmmm....
+      A.matvec(ki, ko);  // copies for mem ordering, hmmmmm....
       for (usize i = 0; i < m; ++i) { Q(i, n + 1) = ko[i]; }
 
       for (usize j = 0; j < n + 1; ++j)
@@ -102,6 +107,7 @@ void GMRES(void (*matvec)(double* v, double* mv), double* b, usize m, double* x,
 
     if (n > ninner - 1) { n = ninner - 1; }
 
+    // triangular solve
     for (usize r = n; r-- > 0;)
     {
       double sum = 0.;
@@ -112,6 +118,7 @@ void GMRES(void (*matvec)(double* v, double* mv), double* b, usize m, double* x,
       y[r] = (-sum + betae[r]) / H(r, r);
     }
 
+    // solution update
     for (usize i = 0; i < m; ++i)
     {
       for (usize k = 0; k < n + 1; ++k)

@@ -24,7 +24,14 @@ int main(int argc, char** argv)
   // init_constant(geom, 1.2, state);
   init_gaussian(geom, 1., 0.5, 0.1, state);
 
-  rk4(geom, nt, dt, state, hist);
+  // rk4(geom, nt, dt, state, hist);
+
+  newton(geom, dt, state);
+
+  // for (usize i = 0; i < geom.size_st(); ++i)
+  // {
+  //   printf("%+.17e\n", state[i]);
+  // }
 
   write_hist(geom, hist, (nt + 1), "hist.ks");
 

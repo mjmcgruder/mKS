@@ -2,6 +2,7 @@
 
 
 #include <cmath>
+#include <cfloat>
 
 #include "linalg.cpp"
 #include "residual.cpp"
@@ -84,102 +85,161 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
 }
 
 
-void BDF1(double* unp1, double* un, double dt, comp_geom& geom, double* resid,
-          double* f, double* F)
+// TODO: in future, template this and provide time scheme specific
+// specializations, maybe a value template with time scheme enum or something
+struct BDF1
 {
-  // compute steady residual
-  compute_residual(geom, unp1, resid, f);
+  // simulation information
+  comp_geom& geom;
+  double     dt;
 
-  // apply time scheme
+  // known time steps (owned)
+  double* un;
+
+  // linearization state (current nonlinear solve guess) (not owned)
+  double* uk;
+
+  // residual work space (owned)
+  double* resid;
+  double* f;        // steady residual
+  double* uk_pert;  // perturbed linearization state, for finite difference
+  double* Fo;       // original (linearization state) unsteady residual
+  double* Fp;       // perturbed state unsteady residual
+
+  // computational routines
+
+  void uresid(double* u, double* F);   // (unsteady) resiudal
+  void matvec(double* v, double* mv);  // jacobian vector product
+
+  // internal state update routines
+
+  void update_linearization_state(double* st);
+  void update_time_step(double* st);
+
+  // --
+
+  BDF1(comp_geom& geom, double dt);
+  ~BDF1();
+
+  BDF1(const BDF1& oth)            = delete;
+  BDF1(BDF1&& oth)                 = delete;
+  BDF1& operator=(const BDF1& oth) = delete;
+  BDF1& operator=(BDF1&& oth)      = delete;
+};
+
+
+void BDF1::uresid(double* u, double* F)
+{
+  compute_residual(geom, u, resid, f);
+
   for (usize i = 0; i < geom.size_st(); ++i)
   {
-    F[i] = unp1[i] - un[i] - dt * f[i];
+    F[i] = u[i] - un[i] - dt * f[i];
   }
 }
 
 
-double* NEWTON_uk;  // current nonlinear solve guess
-
-
-// BDF1 callback supporting globals
-double*    BDF1_un;       // known (previous) state
-double*    BDF1_uk_pert;  // perturbed nonlinear solve guess (filled internally)
-double     BDF1_dt;       // }
-comp_geom* BDF1_geom;     // | residual data / workspace
-double*    BDF1_resid;    // |
-double*    BDF1_f;        // }
-double*    BDF1_Fo;       // original unsteady residual (assigned before entry)
-double*    BDF1_Fp;       // perturbed unsteady residual
-
-
-void BDF1_matvec(double* v, double* mv)
+void BDF1::matvec(double* v, double* mv)
 {
-  double normv = norm(v, BDF1_geom->size_st());
+  double normv = norm(v, geom.size_st()) + DBL_EPSILON;
   double eps   = 1e-8;
 
-  // divide by norm for pure direction, multiply by eps for length
-
-  for (usize i = 0; i < BDF1_geom->size_st(); ++i)
+  for (usize i = 0; i < geom.size_st(); ++i)
   {
-    BDF1_uk_pert[i] = NEWTON_uk[i] + eps * (v[i] / normv);
+    uk_pert[i] = uk[i] + eps * (v[i] / normv);
   }
 
-  BDF1(BDF1_uk_pert, BDF1_un, BDF1_dt, *BDF1_geom, BDF1_resid, BDF1_f, BDF1_Fp);
+  uresid(uk_pert, Fp);
 
-  for (usize i = 0; i < BDF1_geom->size_st(); ++i)
+  for (usize i = 0; i < geom.size_st(); ++i)
   {
-    mv[i] = (BDF1_Fp[i] - BDF1_Fo[i]) / eps;
+    mv[i] = (Fp[i] - Fo[i]) / eps;
   }
+}
+
+
+void BDF1::update_linearization_state(double* new_uk)
+{
+  uk = new_uk;
+  uresid(uk, Fo);
+}
+
+
+void BDF1::update_time_step(double* u)
+{
+  memcpy(un, u, geom.size_st() * sizeof(*u));
+}
+
+
+BDF1::BDF1(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
+{
+  un      = new double[geom.size_st()];
+  resid   = new double[geom.size_st()];
+  f       = new double[geom.size_st()];
+  uk_pert = new double[geom.size_st()];
+  Fo      = new double[geom.size_st()];
+  Fp      = new double[geom.size_st()];
+}
+
+
+BDF1::~BDF1()
+{
+  delete[] un;
+  delete[] resid;
+  delete[] f;
+  delete[] uk_pert;
+  delete[] Fo;
+  delete[] Fp;
 }
 
 
 void newton(comp_geom& geom, double dt, double* un)
 {
-  BDF1_dt   = dt;
-  BDF1_geom = &geom;
-
-  NEWTON_uk  = new double[geom.size_st()];
-  BDF1_resid = new double[geom.size_st()];
-  BDF1_f     = new double[geom.size_st()];
-  BDF1_Fo    = new double[geom.size_st()];
-  BDF1_Fp    = new double[geom.size_st()];
+  double* uk = new double[geom.size_st()];  // nonlinear solution state
   double* x  = new double[geom.size_st()];
   double* b  = new double[geom.size_st()];
 
+  memcpy(uk, un, geom.size_st() * sizeof(*un));
+
+  BDF1 bdf1(geom, dt);
+
+  bdf1.update_time_step(un);
+
   // BEGIN NONLINEAR SOLUTION ITERATION
 
-  memcpy(NEWTON_uk, un, geom.size_st() * sizeof(double));
-  memcpy(BDF1_un, un, geom.size_st() * sizeof(double));
+  bdf1.update_linearization_state(uk);
 
-  BDF1(NEWTON_uk, un, dt, geom, BDF1_resid, BDF1_f, BDF1_Fo);  // call function for initial RHS
-  double nonlinear_residual = norm(BDF1_Fo, geom.size_st());
+  double nonlinear_residual = norm(bdf1.Fo, geom.size_st());
 
-  while (nonlinear_residual > 1e-8)
+  printf("nonlinear residual: %+.17e\n", nonlinear_residual);
+
+  while (nonlinear_residual > 1e-6)
   {
-    for (usize i = 0; i < geom.size_st(); ++i) { b[i] = -BDF1_Fo[i]; }
+    for (usize i = 0; i < geom.size_st(); ++i) { b[i] = -bdf1.Fo[i]; }
     memset(x, 0, geom.size_st() * sizeof(double));
 
     // solve with GMRES
-    GMRES(BDF1_matvec, b, geom.size_st(), x, 100, 10, 1e-8);
+    GMRES(bdf1, b, x, geom.size_st(), 50, 10, 1e-10);
 
-    // update guess with (full?) step
-    for (usize i = 0; i < geom.size_st(); ++i) { NEWTON_uk[i] += x[i]; }
+    // update guess with (full?) step, line search later
+    for (usize i = 0; i < geom.size_st(); ++i) { uk[i] += x[i]; }
 
     // evaluate next RHS
-    BDF1(NEWTON_uk, un, dt, geom, BDF1_resid, BDF1_f, BDF1_Fo);
-    nonlinear_residual = norm(BDF1_Fo, geom.size_st());
+    bdf1.update_linearization_state(uk);
+    nonlinear_residual = norm(bdf1.Fo, geom.size_st());
+
+    printf("nonlinear residual: %+.17e\n", nonlinear_residual);
+    break;
   }
 
   // return guess as next state
-  memcpy(un, NEWTON_uk, geom.size_st() * sizeof(double));
+  memcpy(un, uk, geom.size_st() * sizeof(double));
+
+  bdf1.update_time_step(un);
 
   // END NONLINEAR SOLUTION ITERATION
 
-  delete[] NEWTON_uk;
-  delete[] BDF1_resid;
-  delete[] BDF1_f;
-  delete[] BDF1_Fo;
-  delete[] BDF1_Fp;
+  delete[] uk;
   delete[] x;
   delete[] b;
 }
