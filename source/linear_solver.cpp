@@ -108,7 +108,7 @@ void GMRES(T& A, double* b, double* x, usize m, usize ninner, usize nouter,
     if (n > ninner - 1) { n = ninner - 1; }
 
     // triangular solve
-    for (usize r = n; r-- > 0;)
+    for (usize r = n + 1; r-- > 0;)
     {
       double sum = 0.;
       for (usize c = r + 1; c < n + 1; ++c)
@@ -126,6 +126,11 @@ void GMRES(T& A, double* b, double* x, usize m, usize ninner, usize nouter,
         x[i] += y[k] * Q(i, k);
       }
     }
+
+    A.matvec(x, ko);  // ko not used at the moment
+    for (usize i = 0; i < m; ++i) { ko[i] -= b[i]; }
+    double real_resid = norm(ko, m);
+    printf("real resid: %+.17e\n", real_resid);
 
     if (isconverged) { break; }
   }

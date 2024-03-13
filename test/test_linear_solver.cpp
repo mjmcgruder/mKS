@@ -72,8 +72,9 @@ int test_GMRES()
 
   test_system sys(10, 10);
 
-  double* x = new double[sys.m];
-  double* b = new double[sys.m];
+  double* x   = new double[sys.m];
+  double* b   = new double[sys.m];
+  double* tmp = new double[sys.m];
 
   // manufacture solution to 1
   for (usize i = 0; i < sys.m; ++i) { x[i] = 1.; }
@@ -83,7 +84,14 @@ int test_GMRES()
 
   memset(x, 0, sys.m * sizeof(double));
 
-  GMRES(sys, b, x, sys.m, 20, 1, 1e-17);
+  GMRES(sys, b, x, sys.m, 10, 100, 1e-10);
+
+  // test linear residual
+  sys.matvec(x, tmp);
+  for (usize i = 0; i < sys.m; ++i) { tmp[i] -= b[i]; }
+  double real_resid = norm(tmp, sys.m);
+  printf("real resid: %+.17e\n", real_resid);
+
 
   bool test_fail = false;
   for (usize i = 0; i < sys.m; ++i)
@@ -98,6 +106,7 @@ int test_GMRES()
 
   delete[] x;
   delete[] b;
+  delete[] tmp;
 
   return (test_fail) ? 1 : 0;
 }

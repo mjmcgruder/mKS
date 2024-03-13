@@ -103,6 +103,7 @@ struct BDF1
   double* resid;
   double* f;        // steady residual
   double* uk_pert;  // perturbed linearization state, for finite difference
+
   double* Fo;       // original (linearization state) unsteady residual
   double* Fp;       // perturbed state unsteady residual
 
@@ -142,7 +143,7 @@ void BDF1::uresid(double* u, double* F)
 void BDF1::matvec(double* v, double* mv)
 {
   double normv = norm(v, geom.size_st()) + DBL_EPSILON;
-  double eps   = 1e-8;
+  double eps   = 1e-4;
 
   for (usize i = 0; i < geom.size_st(); ++i)
   {
@@ -193,11 +194,36 @@ BDF1::~BDF1()
 }
 
 
+void line_search_backtrack(BDF1& bdf1, double* tmpu, double* x, const double* uk)
+{
+  double norm_Fo = norm(bdf1.Fo, bdf1.geom.size_st());
+  double norm_Fp;
+  double s = 1.;
+
+  do
+  {
+    for (usize i = 0; i < bdf1.geom.size_st(); ++i) { tmpu[i] = uk[i] + x[i]; }
+
+    bdf1.uresid(tmpu, bdf1.Fp);
+    double norm_Fp = norm(bdf1.Fp, bdf1.geom.size_st());
+
+    printf("line searching: initial: %f final: %f s=%f\n", norm_Fo, norm_Fp, s);
+
+    for (usize i = 0; i < bdf1.geom.size_st(); ++i) { x[i] *= 0.5; }
+    s *= 0.5;
+  }
+  while (norm_Fp > norm_Fo);
+
+  // TODO: assign temp step to final step
+}
+
+
 void newton(comp_geom& geom, double dt, double* un)
 {
   double* uk = new double[geom.size_st()];  // nonlinear solution state
   double* x  = new double[geom.size_st()];
   double* b  = new double[geom.size_st()];
+  double* Ax = new double[geom.size_st()];
 
   memcpy(uk, un, geom.size_st() * sizeof(*un));
 
@@ -219,7 +245,7 @@ void newton(comp_geom& geom, double dt, double* un)
     memset(x, 0, geom.size_st() * sizeof(double));
 
     // solve with GMRES
-    GMRES(bdf1, b, x, geom.size_st(), 50, 10, 1e-10);
+    GMRES(bdf1, b, x, geom.size_st(), 10, 10, 1e-10);
 
     // update guess with (full?) step, line search later
     for (usize i = 0; i < geom.size_st(); ++i) { uk[i] += x[i]; }
@@ -242,4 +268,5 @@ void newton(comp_geom& geom, double dt, double* un)
   delete[] uk;
   delete[] x;
   delete[] b;
+  delete[] Ax;
 }
