@@ -59,12 +59,13 @@ def read_hist(filename):
 
 if __name__ == '__main__':
 
-  if len(sys.argv) != 2:
-    print('Usage: view <rend interval>')
+  if len(sys.argv) != 3:
+    print('Usage: view <rend interval> <frame time (ms)>')
     sys.exit(0)
 
   eres          = 100
   rend_interval = int(sys.argv[1])
+  frame_time    = int(sys.argv[2])
 
   print('reading state...')
 
@@ -101,6 +102,6 @@ if __name__ == '__main__':
 
   ani = animation.FuncAnimation(fig=fig, func=update,
                                 frames=math.floor(nt / rend_interval),
-                                interval=17)
+                                interval=frame_time)
 
   plt.show()

@@ -10,16 +10,13 @@ struct bowl
 {
   // external facing vars
 
-  double Fo[2];
-
-  // external references
-
-  double* xk;    // linearization state (not owned)
+  double F[2];
 
   // worksapce and references
 
-  double Fp[2];  // perturbed residual
-  double xp[2];  // perturbed state
+  double* xk;     // linearization state (not owned)
+  double  Fp[2];  // perturbed residual
+  double  xp[2];  // perturbed state
 
   // --
 
@@ -31,11 +28,8 @@ struct bowl
 
 void bowl::update_guess(double* u)
 {
-  // for FD jacobian
   xk = u;
-
-  // general
-  uresid(u, Fo);
+  uresid(u, F);
 }
 
 
@@ -52,11 +46,8 @@ void bowl::uresid(double* u, double* F)
 
 void bowl::matvec(double* v, double* mv)
 {
-  // finite difference version
-  double vnorm  = norm(v, 2) + DBL_EPSILON;
-  double eps    = 1e-8;
-  double ivnorm = 1. / vnorm;
-  double ieps   = 1. / eps;
+  double eps  = 1e-8;
+  double ieps = 1. / eps;
 
   for (usize i = 0; i < 2; ++i)
   {
@@ -67,7 +58,7 @@ void bowl::matvec(double* v, double* mv)
 
   for (usize i = 0; i < 2; ++i)
   {
-    mv[i] = (Fp[i] - Fo[i]) * ieps;
+    mv[i] = (Fp[i] - F[i]) * ieps;
   }
 }
 

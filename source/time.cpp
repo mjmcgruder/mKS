@@ -155,14 +155,14 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
 {
   system.update_guess(x);
 
-  double nonlinear_residual = norm(system.Fo, m);
+  double nonlinear_residual = norm(system.F, m);
   printf("nonlinear residual: %+.17e\n", nonlinear_residual);
 
   usize newton_iters = 0;
   while (nonlinear_residual > settings.tol_nonlin &&
          newton_iters < settings.max_iter)
   {
-    for (usize i = 0; i < m; ++i) { wsp.b[i] = -system.Fo[i]; }
+    for (usize i = 0; i < m; ++i) { wsp.b[i] = -system.F[i]; }
     memset(wsp.x_upd, 0, m * sizeof(double));  // guess old state
 
     GMRES(system, wsp.b, wsp.x_upd, m,
@@ -172,8 +172,9 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
 
     system.update_guess(x);
 
-    nonlinear_residual = norm(system.Fo, m);
-    printf("nonlinear residual: %+.17e\n", nonlinear_residual);
+    nonlinear_residual = norm(system.F, m);
+    printf("finished nonlinear iter: %zu --- residual: %+.17e\n\n",
+           newton_iters, nonlinear_residual);
 
     ++newton_iters;
   }

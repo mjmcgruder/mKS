@@ -96,7 +96,7 @@ void GMRES(T& A, double* b, double* x, usize m, usize ninner, usize nouter,
 
       double residual = fabs(betae[n + 1]);
 
-      printf("%zu %zu : %+.17e\n", o, n, residual);
+      printf("  %zu %zu : %+.17e\n", o, n, residual);
 
       if (residual < tol)
       {
@@ -130,7 +130,7 @@ void GMRES(T& A, double* b, double* x, usize m, usize ninner, usize nouter,
     A.matvec(x, ko);  // ko not used at the moment
     for (usize i = 0; i < m; ++i) { ko[i] -= b[i]; }
     double real_resid = norm(ko, m);
-    printf("real resid: %+.17e\n", real_resid);
+    printf("  real resid: %+.17e\n", real_resid);
 
     if (isconverged) { break; }
   }
