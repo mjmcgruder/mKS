@@ -26,7 +26,7 @@ int main(int argc, char** argv)
 
   // rk4(geom, nt, dt, state, hist);
 
-  newton(geom, dt, state);
+  // newton(geom, dt, state);
 
   // for (usize i = 0; i < geom.size_st(); ++i)
   // {

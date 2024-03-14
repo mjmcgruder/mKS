@@ -85,188 +85,201 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
 }
 
 
-// TODO: in future, template this and provide time scheme specific
-// specializations, maybe a value template with time scheme enum or something
-struct BDF1
+// // TODO: in future, template this and provide time scheme specific
+// // specializations, maybe a value template with time scheme enum or something
+// struct BDF1
+// {
+//   // simulation information
+//   comp_geom& geom;
+//   double     dt;
+//
+//   // known time steps (owned)
+//   double* un;
+//
+//   // linearization state (current nonlinear solve guess) (not owned)
+//   double* uk;
+//
+//   // residual work space (owned)
+//   double* resid;
+//   double* f;        // steady residual
+//   double* uk_pert;  // perturbed linearization state, for finite difference
+//
+//   double* Fo;       // original (linearization state) unsteady residual
+//   double* Fp;       // perturbed state unsteady residual
+//
+//   // computational routines
+//
+//   void uresid(double* u, double* F);   // (unsteady) resiudal
+//   void matvec(double* v, double* mv);  // jacobian vector product
+//
+//   // internal state update routines
+//
+//   void update_linearization_state(double* st);
+//   void update_time_step(double* st);
+//
+//   // --
+//
+//   BDF1(comp_geom& geom, double dt);
+//   ~BDF1();
+//
+//   BDF1(const BDF1& oth)            = delete;
+//   BDF1(BDF1&& oth)                 = delete;
+//   BDF1& operator=(const BDF1& oth) = delete;
+//   BDF1& operator=(BDF1&& oth)      = delete;
+// };
+//
+//
+// void BDF1::uresid(double* u, double* F)
+// {
+//   compute_residual(geom, u, resid, f);
+//
+//   for (usize i = 0; i < geom.size_st(); ++i)
+//   {
+//     F[i] = u[i] - un[i] - dt * f[i];
+//   }
+// }
+//
+//
+// void BDF1::matvec(double* v, double* mv)
+// {
+//   double normv = norm(v, geom.size_st()) + DBL_EPSILON;
+//   double eps   = 1e-4;
+//
+//   for (usize i = 0; i < geom.size_st(); ++i)
+//   {
+//     uk_pert[i] = uk[i] + eps * (v[i] / normv);
+//   }
+//
+//   uresid(uk_pert, Fp);
+//
+//   for (usize i = 0; i < geom.size_st(); ++i)
+//   {
+//     mv[i] = (Fp[i] - Fo[i]) / eps;
+//   }
+// }
+//
+//
+// void BDF1::update_linearization_state(double* new_uk)
+// {
+//   uk = new_uk;
+//   uresid(uk, Fo);
+// }
+//
+//
+// void BDF1::update_time_step(double* u)
+// {
+//   memcpy(un, u, geom.size_st() * sizeof(*u));
+// }
+//
+//
+// BDF1::BDF1(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
+// {
+//   un      = new double[geom.size_st()];
+//   resid   = new double[geom.size_st()];
+//   f       = new double[geom.size_st()];
+//   uk_pert = new double[geom.size_st()];
+//   Fo      = new double[geom.size_st()];
+//   Fp      = new double[geom.size_st()];
+// }
+//
+//
+// BDF1::~BDF1()
+// {
+//   delete[] un;
+//   delete[] resid;
+//   delete[] f;
+//   delete[] uk_pert;
+//   delete[] Fo;
+//   delete[] Fp;
+// }
+
+
+// void line_search_backtrack(BDF1& bdf1, double* tmpu, double* x, const double* uk)
+// {
+//   double norm_Fo = norm(bdf1.Fo, bdf1.geom.size_st());
+//   double norm_Fp;
+//   double s = 1.;
+//
+//   do
+//   {
+//     for (usize i = 0; i < bdf1.geom.size_st(); ++i) { tmpu[i] = uk[i] + x[i]; }
+//
+//     bdf1.uresid(tmpu, bdf1.Fp);
+//     double norm_Fp = norm(bdf1.Fp, bdf1.geom.size_st());
+//
+//     printf("line searching: initial: %f final: %f s=%f\n", norm_Fo, norm_Fp, s);
+//
+//     for (usize i = 0; i < bdf1.geom.size_st(); ++i) { x[i] *= 0.5; }
+//     s *= 0.5;
+//   }
+//   while (norm_Fp > norm_Fo);
+//
+//   // TODO: assign temp step to final step
+// }
+
+
+struct newton_workspace
 {
-  // simulation information
-  comp_geom& geom;
-  double     dt;
+  double* x_upd;
+  double* b;
 
-  // known time steps (owned)
-  double* un;
+  // ---
 
-  // linearization state (current nonlinear solve guess) (not owned)
-  double* uk;
+  newton_workspace(usize m);
+  ~newton_workspace();
 
-  // residual work space (owned)
-  double* resid;
-  double* f;        // steady residual
-  double* uk_pert;  // perturbed linearization state, for finite difference
-
-  double* Fo;       // original (linearization state) unsteady residual
-  double* Fp;       // perturbed state unsteady residual
-
-  // computational routines
-
-  void uresid(double* u, double* F);   // (unsteady) resiudal
-  void matvec(double* v, double* mv);  // jacobian vector product
-
-  // internal state update routines
-
-  void update_linearization_state(double* st);
-  void update_time_step(double* st);
-
-  // --
-
-  BDF1(comp_geom& geom, double dt);
-  ~BDF1();
-
-  BDF1(const BDF1& oth)            = delete;
-  BDF1(BDF1&& oth)                 = delete;
-  BDF1& operator=(const BDF1& oth) = delete;
-  BDF1& operator=(BDF1&& oth)      = delete;
+  newton_workspace(const newton_workspace& oth)            = delete;
+  newton_workspace(newton_workspace&& oth)                 = delete;
+  newton_workspace& operator=(const newton_workspace& oth) = delete;
+  newton_workspace& operator=(newton_workspace&& oth)      = delete;
 };
 
 
-void BDF1::uresid(double* u, double* F)
+newton_workspace::newton_workspace(usize m)
 {
-  compute_residual(geom, u, resid, f);
-
-  for (usize i = 0; i < geom.size_st(); ++i)
-  {
-    F[i] = u[i] - un[i] - dt * f[i];
-  }
+  x_upd = new double[m];
+  b     = new double[m];
 }
 
 
-void BDF1::matvec(double* v, double* mv)
+newton_workspace::~newton_workspace()
 {
-  double normv = norm(v, geom.size_st()) + DBL_EPSILON;
-  double eps   = 1e-4;
-
-  for (usize i = 0; i < geom.size_st(); ++i)
-  {
-    uk_pert[i] = uk[i] + eps * (v[i] / normv);
-  }
-
-  uresid(uk_pert, Fp);
-
-  for (usize i = 0; i < geom.size_st(); ++i)
-  {
-    mv[i] = (Fp[i] - Fo[i]) / eps;
-  }
+  delete[] x_upd;
+  delete[] b;
 }
 
 
-void BDF1::update_linearization_state(double* new_uk)
+struct newton_settings
 {
-  uk = new_uk;
-  uresid(uk, Fo);
-}
+  usize ninner;
+  usize nouter;
+  usize tol_lin;
+  usize tol_nonlin;
+};
 
 
-void BDF1::update_time_step(double* u)
+template<typename T>
+void newton_step(T& system, double* x, usize m, newton_settings& settings,
+                 newton_workspace& wsp)
 {
-  memcpy(un, u, geom.size_st() * sizeof(*u));
-}
+  system.update_guess(x);
 
-
-BDF1::BDF1(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
-{
-  un      = new double[geom.size_st()];
-  resid   = new double[geom.size_st()];
-  f       = new double[geom.size_st()];
-  uk_pert = new double[geom.size_st()];
-  Fo      = new double[geom.size_st()];
-  Fp      = new double[geom.size_st()];
-}
-
-
-BDF1::~BDF1()
-{
-  delete[] un;
-  delete[] resid;
-  delete[] f;
-  delete[] uk_pert;
-  delete[] Fo;
-  delete[] Fp;
-}
-
-
-void line_search_backtrack(BDF1& bdf1, double* tmpu, double* x, const double* uk)
-{
-  double norm_Fo = norm(bdf1.Fo, bdf1.geom.size_st());
-  double norm_Fp;
-  double s = 1.;
-
-  do
-  {
-    for (usize i = 0; i < bdf1.geom.size_st(); ++i) { tmpu[i] = uk[i] + x[i]; }
-
-    bdf1.uresid(tmpu, bdf1.Fp);
-    double norm_Fp = norm(bdf1.Fp, bdf1.geom.size_st());
-
-    printf("line searching: initial: %f final: %f s=%f\n", norm_Fo, norm_Fp, s);
-
-    for (usize i = 0; i < bdf1.geom.size_st(); ++i) { x[i] *= 0.5; }
-    s *= 0.5;
-  }
-  while (norm_Fp > norm_Fo);
-
-  // TODO: assign temp step to final step
-}
-
-
-void newton(comp_geom& geom, double dt, double* un)
-{
-  double* uk = new double[geom.size_st()];  // nonlinear solution state
-  double* x  = new double[geom.size_st()];
-  double* b  = new double[geom.size_st()];
-  double* Ax = new double[geom.size_st()];
-
-  memcpy(uk, un, geom.size_st() * sizeof(*un));
-
-  BDF1 bdf1(geom, dt);
-
-  bdf1.update_time_step(un);
-
-  // BEGIN NONLINEAR SOLUTION ITERATION
-
-  bdf1.update_linearization_state(uk);
-
-  double nonlinear_residual = norm(bdf1.Fo, geom.size_st());
-
+  double nonlinear_residual = norm(system.Fo, m);
   printf("nonlinear residual: %+.17e\n", nonlinear_residual);
 
-  while (nonlinear_residual > 1e-6)
+  while (nonlinear_residual > settings.tol_nonlin)
   {
-    for (usize i = 0; i < geom.size_st(); ++i) { b[i] = -bdf1.Fo[i]; }
-    memset(x, 0, geom.size_st() * sizeof(double));
+    for (usize i = 0; i < m; ++i) { wsp.b[i] = -system.Fo[i]; }
+    memset(wsp.x_upd, 0, m * sizeof(double));  // guess old state
 
-    // solve with GMRES
-    GMRES(bdf1, b, x, geom.size_st(), 10, 10, 1e-10);
+    GMRES(system, wsp.b, wsp.x_upd, m,
+          settings.ninner, settings.nouter, settings.tol_lin);
 
-    // update guess with (full?) step, line search later
-    for (usize i = 0; i < geom.size_st(); ++i) { uk[i] += x[i]; }
+    for (usize i = 0; i < m; ++i) { x[i] += wsp.x_upd[i]; }  // full newton step
 
-    // evaluate next RHS
-    bdf1.update_linearization_state(uk);
-    nonlinear_residual = norm(bdf1.Fo, geom.size_st());
+    system.update_guess(x);
 
+    nonlinear_residual = norm(system.Fo, m);
     printf("nonlinear residual: %+.17e\n", nonlinear_residual);
-    break;
   }
-
-  // return guess as next state
-  memcpy(un, uk, geom.size_st() * sizeof(double));
-
-  bdf1.update_time_step(un);
-
-  // END NONLINEAR SOLUTION ITERATION
-
-  delete[] uk;
-  delete[] x;
-  delete[] b;
-  delete[] Ax;
 }
