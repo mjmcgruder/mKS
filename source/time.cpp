@@ -2,7 +2,6 @@
 
 
 #include <cmath>
-#include <cfloat>
 
 #include "linalg.cpp"
 #include "residual.cpp"
@@ -142,23 +141,26 @@ newton_workspace::~newton_workspace()
 
 struct newton_settings
 {
-  usize ninner;
-  usize nouter;
-  usize tol_lin;
-  usize tol_nonlin;
+  usize  ninner;
+  usize  nouter;
+  double tol_lin;
+  double tol_nonlin;
+  usize  max_iter;
 };
 
 
 template<typename T>
-void newton_step(T& system, double* x, usize m, newton_settings& settings,
-                 newton_workspace& wsp)
+void newton_solve(T& system, double* x, usize m, newton_settings& settings,
+                  newton_workspace& wsp)
 {
   system.update_guess(x);
 
   double nonlinear_residual = norm(system.Fo, m);
   printf("nonlinear residual: %+.17e\n", nonlinear_residual);
 
-  while (nonlinear_residual > settings.tol_nonlin)
+  usize newton_iters = 0;
+  while (nonlinear_residual > settings.tol_nonlin &&
+         newton_iters < settings.max_iter)
   {
     for (usize i = 0; i < m; ++i) { wsp.b[i] = -system.Fo[i]; }
     memset(wsp.x_upd, 0, m * sizeof(double));  // guess old state
@@ -172,5 +174,7 @@ void newton_step(T& system, double* x, usize m, newton_settings& settings,
 
     nonlinear_residual = norm(system.Fo, m);
     printf("nonlinear residual: %+.17e\n", nonlinear_residual);
+
+    ++newton_iters;
   }
 }
