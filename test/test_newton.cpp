@@ -71,9 +71,15 @@ int test_newton()
   double x[2] = {2., 1.};
 
   newton_settings  nset{2, 100, 1e-10, 1e-10, 10};
+  nset.gmres.ninner = 2;
+  nset.gmres.nouter = 100;
+  nset.gmres.rtol   = 1e-10;
+  nset.nonlin_tol   = 1e-10;
+  nset.max_iter     = 10;
   newton_workspace nwrk(2);
+  GMRES_workspace gwrk(nset.gmres, 2);
 
-  newton_solve(system, x, 2, nset, nwrk);
+  newton_solve(system, x, 2, nset, gwrk, nwrk);
 
   printf("Answer: %+.17e %+.17e\n", x[0], x[1]);
 

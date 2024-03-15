@@ -84,7 +84,14 @@ int test_GMRES()
 
   memset(x, 0, sys.m * sizeof(double));
 
-  GMRES(sys, b, x, sys.m, 10, 100, 1e-14);
+  GMRES_settings set;
+  set.ninner = 50;
+  set.nouter = 10;
+  set.rtol   = 1e-10;
+
+  GMRES_workspace wsp(set, sys.m);
+
+  GMRES(sys, b, x, sys.m, set, wsp);
 
   // test linear residual
   sys.matvec(x, tmp);

@@ -22,15 +22,21 @@ int main(int argc, char** argv)
   double* state = new double[geom.size_st()];
   double* hist  = new double[(nt + 1) * geom.size_st()];
 
-  // init_constant(geom, 1.2, state);
   init_gaussian(geom, 1., 0.5, 0.1, state);
 
-  // rk4(geom, nt, dt, state, hist);
+  /* TIME STEPPING */
 
   BDF1 bdf1(geom, dt);
 
-  newton_settings settings{50, 10, 1e-8, 1e-8, 100};
-  newton_workspace wsp(geom.size_st());
+  newton_settings settings;
+  settings.gmres.ninner = 50;
+  settings.gmres.nouter = 10;
+  settings.gmres.rtol   = 1e-4;
+  settings.nonlin_tol   = 1e-6;
+  settings.max_iter     = 10;
+
+  newton_workspace nwsp(geom.size_st());
+  GMRES_workspace  gwsp(settings.gmres, geom.size_st());
 
   bdf1.update_step(state);
 
@@ -42,7 +48,7 @@ int main(int argc, char** argv)
 
     memcpy(hist + it * geom.size_st(), state, geom.size_st() * sizeof(double));
 
-    newton_solve(bdf1, state, geom.size_st(), settings, wsp);
+    newton_solve(bdf1, state, geom.size_st(), settings, gwsp, nwsp);
 
     bdf1.update_step(state);
   }

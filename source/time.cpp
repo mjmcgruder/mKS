@@ -141,17 +141,15 @@ newton_workspace::~newton_workspace()
 
 struct newton_settings
 {
-  usize  ninner;
-  usize  nouter;
-  double tol_lin;
-  double tol_nonlin;
-  usize  max_iter;
+  GMRES_settings gmres;
+  double         nonlin_tol;
+  usize          max_iter;
 };
 
 
 template<typename T>
 void newton_solve(T& system, double* x, usize m, newton_settings& settings,
-                  newton_workspace& wsp)
+                  GMRES_workspace& gwsp, newton_workspace& nwsp)
 {
   system.update_guess(x);
 
@@ -159,16 +157,15 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
   printf("nonlinear residual: %+.17e\n", nonlinear_residual);
 
   usize newton_iters = 0;
-  while (nonlinear_residual > settings.tol_nonlin &&
+  while (nonlinear_residual > settings.nonlin_tol &&
          newton_iters < settings.max_iter)
   {
-    for (usize i = 0; i < m; ++i) { wsp.b[i] = -system.F[i]; }
-    memset(wsp.x_upd, 0, m * sizeof(double));  // guess old state
+    for (usize i = 0; i < m; ++i) { nwsp.b[i] = -system.F[i]; }
+    memset(nwsp.x_upd, 0, m * sizeof(double));  // guess old state
 
-    GMRES(system, wsp.b, wsp.x_upd, m,
-          settings.ninner, settings.nouter, settings.tol_lin);
+    GMRES(system, nwsp.b, nwsp.x_upd, m, settings.gmres, gwsp);
 
-    for (usize i = 0; i < m; ++i) { x[i] += wsp.x_upd[i]; }  // full newton step
+    for (usize i = 0; i < m; ++i) { x[i] += nwsp.x_upd[i]; }  // full newton step
 
     system.update_guess(x);
 

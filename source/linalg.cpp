@@ -27,3 +27,12 @@ double norm_perelem(double* a, usize len)
 
   return sqrt((1. / double(len)) * sum);
 }
+
+
+double dot(double* a, double* b, usize len)
+{
+  double sum = 0.;
+  for (usize i = 0; i < len; ++i) { sum += a[i] * b[i]; }
+
+  return sum;
+}

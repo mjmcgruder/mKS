@@ -1,9 +1,12 @@
 #pragma once
 
 
+#include <cfloat>
+
 #include "residual.cpp"
 #include "geometry.cpp"
 #include "types.cpp"
+#include "linalg.cpp"
 
 
 class BDF1
@@ -61,7 +64,7 @@ void BDF1::uresid(double* u, double* F)
 
 void BDF1::matvec(double* v, double* mv)
 {
-  double eps  = 1e-8;
+  double eps  = 1e-6;
   double ieps = 1. / eps;
 
   for (usize i = 0; i < geom.size_st(); ++i) { up[i] = uk[i] + eps * v[i]; }
