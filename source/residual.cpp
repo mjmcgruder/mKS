@@ -9,8 +9,8 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
   // constants (set these somewhere else later)
 
   const double a   = 1.;
-  const double nu  = 0.01;
-  const double c   = 0.01;
+  const double nu  = 0;
+  const double c   = 1;
 
   const double eta = 16.;
   const double sig = 16.;
@@ -46,11 +46,11 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       // // for advective term
       // double advective_flux = a * s;
 
-      // // for nonlinear term
-      // double nonlinear_flux = 0.5 * s * s;
+      // for nonlinear term
+      double nonlinear_flux = 0.5 * s * s;
 
-      // // for viscous term
-      // double viscous_flux = nu * s_x;
+      // for viscous term
+      double viscous_flux = nu * s_x;
 
       // for fourth order term
       double fourth_flux = c * s_xx;
@@ -61,13 +61,13 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         // geom.idx_st(resid, ei, ti) -=
         //   (geom.iqp_d1(qi, ti) * iJ) * advective_flux * J * geom.qrule.w[qi];
 
-        // // nonlinear term
-        // geom.idx_st(resid, ei, ti) -=
-        //   (geom.iqp_d1(qi, ti) * iJ) * nonlinear_flux * J * geom.qrule.w[qi];
+        // nonlinear term
+        geom.idx_st(resid, ei, ti) -=
+          (geom.iqp_d1(qi, ti) * iJ) * nonlinear_flux * J * geom.qrule.w[qi];
 
-        // // viscous term
-        // geom.idx_st(resid, ei, ti) +=
-        //   (geom.iqp_d1(qi, ti) * iJ) * viscous_flux * J * geom.qrule.w[qi];
+        // viscous term
+        geom.idx_st(resid, ei, ti) +=
+          (geom.iqp_d1(qi, ti) * iJ) * viscous_flux * J * geom.qrule.w[qi];
 
         // fourth order term
         geom.idx_st(resid, ei, ti) +=
@@ -120,24 +120,24 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
     // double ad_fr   = a * sr;
     // double ad_flux = 0.5 * ((ad_fl + ad_fr) - std::abs(a) * (sr - sl));
 
-    // // for nonlinear term
-    // double nl_fl   = 0.5 * sl * sl;
-    // double nl_fr   = 0.5 * sr * sr;
-    // double nl_flux = 0.5 * ((nl_fl + nl_fr) - std::abs(a) * (sr - sl));
+    // for nonlinear term
+    double nl_fl   = 0.5 * sl * sl;
+    double nl_fr   = 0.5 * sr * sr;
+    double nl_flux = 0.5 * ((nl_fl + nl_fr) - std::abs(a) * (sr - sl));
 
-    // // for dual consistency term
-    // double s_av  = 0.5 * (sl + sr);
-    // double dc_fl = nu * (sl - s_av) * +1.;
-    // double dc_fr = nu * (sr - s_av) * -1.;
+    // for dual consistency term
+    double s_av  = 0.5 * (sl + sr);
+    double dc_fl = nu * (sl - s_av) * +1.;
+    double dc_fr = nu * (sr - s_av) * -1.;
 
-    // // for viscous flux term
-    // double dl = (1. / geom.elem_len(el)) * nu * (sl - sr) * +1.;
-    // double dr = (1. / geom.elem_len(er)) * nu * (sr - sl) * -1.;
-    // double dm = 0.5 * (dl + dr);
-    // double ql = nu * sl_x;
-    // double qr = nu * sr_x;
-    // double qm = 0.5 * (ql + qr);
-    // double qh = qm - eta * dm;
+    // for viscous flux term
+    double dl = (1. / geom.elem_len(el)) * nu * (sl - sr) * +1.;
+    double dr = (1. / geom.elem_len(er)) * nu * (sr - sl) * -1.;
+    double dm = 0.5 * (dl + dr);
+    double ql = nu * sl_x;
+    double qr = nu * sr_x;
+    double qm = 0.5 * (ql + qr);
+    double qh = qm - eta * dm;
 
     // for fourth order term
     double avg_s_xx  = 0.5 * (sl_xx + sr_xx);
@@ -157,17 +157,17 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       // geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * ad_flux;
       // geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * ad_flux;
 
-      // // nonlinear term
-      // geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * nl_flux;
-      // geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * nl_flux;
+      // nonlinear term
+      geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * nl_flux;
+      geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * nl_flux;
 
-      // // dual consistency term
-      // geom.idx_st(resid, el, ti) -= geom.edg_d1(elem_side::high, ti) * iJ * dc_fl;
-      // geom.idx_st(resid, er, ti) -= geom.edg_d1(elem_side::low,  ti) * iJ * dc_fr;
+      // dual consistency term
+      geom.idx_st(resid, el, ti) -= geom.edg_d1(elem_side::high, ti) * iJ * dc_fl;
+      geom.idx_st(resid, er, ti) -= geom.edg_d1(elem_side::low,  ti) * iJ * dc_fr;
 
-      // // viscous flux term
-      // geom.idx_st(resid, el, ti) -= geom.edg_bf(elem_side::high, ti) * qh * +1.;
-      // geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * qh * -1.;
+      // viscous flux term
+      geom.idx_st(resid, el, ti) -= geom.edg_bf(elem_side::high, ti) * qh * +1.;
+      geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * qh * -1.;
 
       // fourth order term
       double tl     = geom.edg_bf(elem_side::high, ti);
