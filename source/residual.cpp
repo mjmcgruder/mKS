@@ -8,9 +8,10 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
 {
   // constants (set these somewhere else later)
 
-  const double a   = 1.;
-  const double nu  = 0;
-  const double c   = 1;
+  // const double a   = 1.;
+  const double nc  = 1.;  // nonlinear coefficient
+  const double nu  = -1.;
+  const double c   = 0.25;
 
   const double eta = 16.;
   const double sig = 16.;
@@ -47,7 +48,7 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       // double advective_flux = a * s;
 
       // for nonlinear term
-      double nonlinear_flux = 0.5 * s * s;
+      double nonlinear_flux = nc * 0.5 * s * s;
 
       // for viscous term
       double viscous_flux = nu * s_x;
@@ -123,7 +124,10 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
     // for nonlinear term
     double nl_fl   = 0.5 * sl * sl;
     double nl_fr   = 0.5 * sr * sr;
-    double nl_flux = 0.5 * ((nl_fl + nl_fr) - std::abs(a) * (sr - sl));
+    double ah;
+    if (sl == sr) { ah = sl; }
+    else          { ah = (nl_fr - nl_fl) / (sr - sl); }
+    double nl_flux = nc * 0.5 * ((nl_fl + nl_fr) - std::abs(ah) * (sr - sl));
 
     // for dual consistency term
     double s_av  = 0.5 * (sl + sr);

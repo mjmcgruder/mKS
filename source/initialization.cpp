@@ -30,3 +30,22 @@ void init_gaussian(comp_geom& geom, double a, double b, double c, double* state)
 
   delete[] n;
 }
+
+
+void init_sines(comp_geom& geom, double* state)
+{
+  double* n = new double[geom.p + 1];
+  lagrange_nodes(geom.p, n);
+
+  for (usize ei = 0; ei < geom.ne; ++ei)
+  {
+    for (usize ni = 0; ni < geom.p + 1; ++ni)
+    {
+      double x                   = geom.ref2glo(ei, n[ni]);
+      double g                   = 0.1 * (cos(x) + sin(x));
+      geom.idx_st(state, ei, ni) = g;
+    }
+  }
+
+  delete[] n;
+}

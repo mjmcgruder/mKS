@@ -150,7 +150,7 @@ void GMRES(T& A, double* b, double* x, usize m,
 
       double residual = fabs(wsp.betae[n + 1]);
 
-      printf("  %zu %zu : %+.17e\n", o, n, residual);
+      // printf("  %zu %zu : %+.17e\n", o, n, residual);
 
       if (residual < set.rtol * r0_norm)
       {

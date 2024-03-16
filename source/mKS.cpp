@@ -17,12 +17,13 @@ int main(int argc, char** argv)
   const usize  nt = strtoull(argv[3], nullptr, 10);
   const double dt = strtod(argv[4], nullptr);
 
-  comp_geom geom(1., ne, p);
+  comp_geom geom(2. * PI, ne, p);
 
   double* state = new double[geom.size_st()];
   double* hist  = new double[(nt + 1) * geom.size_st()];
 
-  init_gaussian(geom, 1., 0.5, 0.1, state);
+  // init_gaussian(geom, 1., 0.5, 0.1, state);
+  init_sines(geom, state);
 
   /* TIME STEPPING */
 
