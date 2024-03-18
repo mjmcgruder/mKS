@@ -35,7 +35,7 @@ int main(int argc, char** argv)
   settings.gmres.nouter = 5;
   settings.gmres.rtol   = 1e-4;
   settings.nonlin_tol   = 1e-6;
-  settings.max_iter     = 3;
+  settings.max_iter     = 5;
 
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 
   memcpy(hist + nt * geom.size_st(), state, geom.size_st() * sizeof(double));
 
-  write_hist(geom, hist, (nt + 1), "hist.ks");
+  write_hist(geom, hist, (nt + 1), dt, "hist.ks");
 
   delete[] state;
   delete[] hist;

@@ -43,18 +43,18 @@ def read_hist(filename):
   f = open(filename, 'rb')
   b = f.read()
 
-  l, ne, p, nt = unpack('@dNNN', b[:32])
-  geom         = comp_geom(l, ne, p)
+  l, ne, p, nt, dt = unpack('@dNNNd', b[:40])
+  geom             = comp_geom(l, ne, p)
 
   state_size = (geom.p + 1) * geom.ne
 
-  hist = unpack(f'@{nt * state_size}d', b[32:])
+  hist = unpack(f'@{nt * state_size}d', b[40:])
   hist = np.array(hist)
   hist = np.reshape(hist, (nt, geom.ne, geom.p + 1))
 
   f.close()
 
-  return geom, hist, nt
+  return geom, hist, nt, dt
 
 
 if __name__ == '__main__':
@@ -69,7 +69,9 @@ if __name__ == '__main__':
 
   print('reading state...')
 
-  geom, hist, nt = read_hist('hist.ks')
+  geom, hist, nt, dt = read_hist('hist.ks')
+
+  t_f = (nt - 1) * dt
 
   print('pre-computing basis functions...')
 
@@ -82,6 +84,9 @@ if __name__ == '__main__':
 
   plotting_hist = np.transpose(np.matmul(hist, basis), axes=(0, 2, 1))
 
+  plotting_max = np.max(plotting_hist)
+  plotting_min = np.min(plotting_hist)
+
   print('computing x-axis positions...')
 
   elem_len     = geom.l / geom.ne
@@ -92,17 +97,34 @@ if __name__ == '__main__':
   print('plotting...')
 
   fig, ax = plt.subplots()
-  lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
-  ax.set_ylim([-10., +10.])
 
-  def update(frame):
-    for j in range(len(lines)):
-      lines[j].set_xdata(plotting_pos[:, j])
-      lines[j].set_ydata(plotting_hist[frame * rend_interval, :, j])
-    return lines
+  ax.set_xlim(0., geom.l)
+  ax.set_xlabel('x')
+  ax.set_ylabel('t')
 
-  ani = animation.FuncAnimation(fig=fig, func=update,
-                                frames=math.floor(nt / rend_interval),
-                                interval=frame_time)
+  for ie in range(geom.ne):
+    ax.imshow(
+      plotting_hist[:, :, ie],
+      extent=(plotting_pos[0, ie], plotting_pos[-1, ie], 0, t_f),
+      vmin=plotting_min,
+      vmax=plotting_max,
+      origin='lower'
+    )
+
+  ax.set_aspect((2. / t_f) / (1. / geom.l))
+
+
+  # lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
+  # ax.set_ylim([plotting_min, plotting_max])
+  #
+  # def update(frame):
+  #   for j in range(len(lines)):
+  #     lines[j].set_xdata(plotting_pos[:, j])
+  #     lines[j].set_ydata(plotting_hist[frame * rend_interval, :, j])
+  #   return lines
+  #
+  # ani = animation.FuncAnimation(fig=fig, func=update,
+  #                               frames=math.floor(nt / rend_interval),
+  #                               interval=frame_time)
 
   plt.show()

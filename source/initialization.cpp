@@ -42,7 +42,8 @@ void init_sines(comp_geom& geom, double* state)
     for (usize ni = 0; ni < geom.p + 1; ++ni)
     {
       double x                   = geom.ref2glo(ei, n[ni]);
-      double g                   = 0.1 * (cos(x) + sin(x));
+      // double g                   = 0.1 * (cos(x) + sin(x));
+      double g                   = cos(x) + cos(2. * x) + cos(3. * x) + cos(4. * x);
       geom.idx_st(state, ei, ni) = g;
     }
   }

@@ -11,7 +11,7 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
   // const double a   = 1.;
   const double nc  = 1.;  // nonlinear coefficient
   const double nu  = -1.;
-  const double c   = 0.04938;
+  const double c   = 0.1111;
 
   // const double nc  = 0.;  // nonlinear coefficient
   // const double nu  = 0.;
