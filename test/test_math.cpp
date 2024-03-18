@@ -4,7 +4,7 @@
 #include <cstdio>
 
 #include "types.cpp"
-#include "math.cpp"
+#include "linalg.cpp"
 
 
 double A[100] =

@@ -2,7 +2,7 @@
 
 
 #include "basis.cpp"
-#include "math.cpp"
+#include "linalg.cpp"
 #include "quadrature.cpp"
 
 

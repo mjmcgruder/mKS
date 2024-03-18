@@ -11,10 +11,14 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
   // const double a   = 1.;
   const double nc  = 1.;  // nonlinear coefficient
   const double nu  = -1.;
-  const double c   = 0.25;
+  const double c   = 0.04938;
+
+  // const double nc  = 0.;  // nonlinear coefficient
+  // const double nu  = 0.;
+  // const double c   = 1.;
 
   const double eta = 16.;
-  const double sig = 16.;
+  const double sig = 4096.;
   const double tau = 16.;
 
   // zero residual
@@ -196,8 +200,8 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         c * 0.5 * tr_xxx * diff_sr -
         c * avg_s_xx * tr_x * -1 -
         c * 0.5 * tr_xx * diff_sr_x +
-        c * sigr * diff_sr * tr * -1 +
-        c * taur * diff_sr_x * tr_x * -1;
+        c * sigr * diff_sr * tr * +1 +
+        c * taur * diff_sr_x * tr_x * +1;
     }
   }
 

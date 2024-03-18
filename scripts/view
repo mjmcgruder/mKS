@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
   fig, ax = plt.subplots()
   lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
-  ax.set_ylim([-5., +5.])
+  ax.set_ylim([-10., +10.])
 
   def update(frame):
     for j in range(len(lines)):

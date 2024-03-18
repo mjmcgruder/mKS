@@ -64,7 +64,7 @@ void BDF1::uresid(double* u, double* F)
 
 void BDF1::matvec(double* v, double* mv)
 {
-  double eps  = 1e-3;
+  double eps  = 1e-4;
   double ieps = 1. / eps;
 
   for (usize i = 0; i < geom.size_st(); ++i) { up[i] = uk[i] + eps * v[i]; }

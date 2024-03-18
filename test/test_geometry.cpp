@@ -5,7 +5,7 @@
 
 #include "types.cpp"
 #include "geometry.cpp"
-#include "math.cpp"
+#include "linalg.cpp"
 
 
 int test_mass_matrix()

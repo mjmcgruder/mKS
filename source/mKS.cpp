@@ -18,11 +18,12 @@ int main(int argc, char** argv)
   const double dt = strtod(argv[4], nullptr);
 
   comp_geom geom(2. * PI, ne, p);
+  // comp_geom geom(1., ne, p);
 
   double* state = new double[geom.size_st()];
   double* hist  = new double[(nt + 1) * geom.size_st()];
 
-  // init_gaussian(geom, 1., 0.5, 0.1, state);
+  // init_gaussian(geom, 0.1, 0.5, 0.1, state);
   init_sines(geom, state);
 
   /* TIME STEPPING */
@@ -30,11 +31,11 @@ int main(int argc, char** argv)
   BDF1 bdf1(geom, dt);
 
   newton_settings settings;
-  settings.gmres.ninner = 50;
-  settings.gmres.nouter = 10;
+  settings.gmres.ninner = 40;
+  settings.gmres.nouter = 5;
   settings.gmres.rtol   = 1e-4;
   settings.nonlin_tol   = 1e-6;
-  settings.max_iter     = 10;
+  settings.max_iter     = 3;
 
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());

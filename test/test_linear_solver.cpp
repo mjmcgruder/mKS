@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include "math.cpp"
+#include "linalg.cpp"
 #include "linear_solver.cpp"
 
 
