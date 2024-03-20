@@ -31,11 +31,11 @@ int main(int argc, char** argv)
   BDF1 bdf1(geom, dt);
 
   newton_settings settings;
-  settings.gmres.ninner = 40;
+  settings.gmres.ninner = 50;
   settings.gmres.nouter = 5;
-  settings.gmres.rtol   = 1e-4;
-  settings.nonlin_tol   = 1e-6;
-  settings.max_iter     = 5;
+  settings.gmres.rtol   = 1e-2;
+  settings.nonlin_tol   = 1e-8;
+  settings.max_iter     = 10;
 
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());

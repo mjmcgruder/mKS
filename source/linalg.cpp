@@ -68,6 +68,18 @@ double norm(double* a, usize len)
 }
 
 
+double norm1(double* a, usize len)
+{
+  double sum = 0.;
+  for (usize i = 0; i < len; ++i)
+  {
+    sum += std::abs(a[i]);
+  }
+
+  return sum;
+}
+
+
 double norm_perelem(double* a, usize len)
 {
   double sum = 0.;

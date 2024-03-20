@@ -64,7 +64,18 @@ void BDF1::uresid(double* u, double* F)
 
 void BDF1::matvec(double* v, double* mv)
 {
-  double eps  = 1e-4;
+  const double erel = 1e-4;
+
+  double vnorm = norm(v, geom.size_st());
+  if (vnorm < DBL_EPSILON)
+  {
+    memset(mv, 0, geom.size_st() * sizeof(double));
+    return;
+  }
+
+  double vdotu = std::abs(dot(uk, v, geom.size_st()));
+
+  double eps  = (erel / vnorm) * vdotu;
   double ieps = 1. / eps;
 
   for (usize i = 0; i < geom.size_st(); ++i) { up[i] = uk[i] + eps * v[i]; }
