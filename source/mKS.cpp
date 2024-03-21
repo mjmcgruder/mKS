@@ -13,9 +13,9 @@ int main(int argc, char** argv)
   settings.nonlin_tol   = 1e-8;
   settings.max_iter     = 10;
 
-  double nc  = 0.;
-  double nu2 = 0.1;
-  double nu4 = 0.;
+  double nc  = 1.;
+  double nu2 = 1.;
+  double nu4 = 0.1111;
   double eta = 16.;
   double sig = 4096.;
   double tau = 16.;
@@ -34,14 +34,16 @@ int main(int argc, char** argv)
   const usize  nt = strtoull(argv[3], nullptr, 10);
   const double dt = strtod(argv[4], nullptr);
 
-  comp_geom geom(2. * PI, ne, p, nc, nu2, nu4, eta, sig, tau);
+  comp_geom geom(2. * PI, ne, p,
+                 nc, nu2, nu4, eta, sig, tau,
+                 periodic, 0., 0.);
 
   double* state = new double[geom.size_st()];
   double* hist  = new double[(nt + 1) * geom.size_st()];
 
   // init_gaussian(geom, 0.1, 0.5, 0.1, state);
-  // init_sines(geom, state);
-  init_constant(geom, 0.1, state);
+  init_sines(geom, state);
+  // init_constant(geom, 0.1, state);
 
   /* TIME STEPPING */
 

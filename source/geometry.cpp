@@ -13,6 +13,13 @@ enum struct elem_side
 };
 
 
+enum bound_type
+{
+  periodic,
+  dirichlet
+};
+
+
 // Structure containing discretization information with the resulting
 // pre-computed quantities. For now, all elements are the same size and the same
 // order to keep things simple.
@@ -34,6 +41,10 @@ struct comp_geom
   usize  ne;  // number of elements
   usize  p;   // element order (all elements same order for now)
 
+  bound_type btype;
+  double     dirichlet_left;
+  double     dirichlet_right;
+
   // Jacobian / determinant
   // Only one for now, all elements are same size and geometry within elements
   // is linear. Change this to a per-element Jacobian later.
@@ -41,6 +52,10 @@ struct comp_geom
 
   double elem_len(usize e);
   double ref2glo(usize e, double xi);
+
+  // source ---
+
+  double (*source)(double x) = nullptr;
 
   // pre-computes ---
 
@@ -85,7 +100,9 @@ struct comp_geom
   // constructors etc. ---
 
   comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
-            double nu4_, double eta_, double sig_, double tau_);
+            double nu4_, double eta_, double sig_, double tau_,
+            bound_type btype_ = periodic, double dirichlet_left_ = 0.,
+            double dirichlet_right_ = 0., double (*source) (double x) = nullptr);
   ~comp_geom();
 
   comp_geom(const comp_geom& oth)            = delete;
@@ -155,7 +172,9 @@ usize comp_geom::size_st()
 
 
 comp_geom::comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
-                     double nu4_, double eta_, double sig_, double tau_)
+                     double nu4_, double eta_, double sig_, double tau_,
+                     bound_type btype_, double dirichlet_left_,
+                     double dirichlet_right_, double (*source_) (double x))
 {
   nc  = nc_;
   nu2 = nu2_;
@@ -168,9 +187,15 @@ comp_geom::comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
   ne = ne_;
   p  = p_;
 
+  btype           = btype_;
+  dirichlet_left  = dirichlet_left_;
+  dirichlet_right = dirichlet_right_;
+
   qrule = get_quadrature_rule(p);
 
   J = 0.5 * elem_len(0);
+
+  source = source_;
 
   // interior basis functions and gradients
 
