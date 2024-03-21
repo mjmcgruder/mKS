@@ -6,20 +6,7 @@
 
 void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
 {
-  // constants (set these somewhere else later)
-
-  // const double a   = 1.;
-  const double nc  = 1.;  // nonlinear coefficient
-  const double nu  = -1.;
-  const double c   = 0.1111;
-
-  // const double nc  = 0.;  // nonlinear coefficient
-  // const double nu  = 0.;
-  // const double c   = 1.;
-
-  const double eta = 16.;
-  const double sig = 4096.;
-  const double tau = 16.;
+  bool direchlet = true;
 
   // zero residual
 
@@ -52,13 +39,13 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       // double advective_flux = a * s;
 
       // for nonlinear term
-      double nonlinear_flux = nc * 0.5 * s * s;
+      double nonlinear_flux = geom.nc * 0.5 * s * s;
 
       // for viscous term
-      double viscous_flux = nu * s_x;
+      double viscous_flux = geom.nu2 * s_x;
 
       // for fourth order term
-      double fourth_flux = c * s_xx;
+      double fourth_flux = geom.nu4 * s_xx;
 
       for (usize ti = 0; ti < pp1; ++ti)
       {
@@ -131,21 +118,21 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
     double ah;
     if (sl == sr) { ah = sl; }
     else          { ah = (nl_fr - nl_fl) / (sr - sl); }
-    double nl_flux = nc * 0.5 * ((nl_fl + nl_fr) - std::abs(ah) * (sr - sl));
+    double nl_flux = geom.nc * 0.5 * ((nl_fl + nl_fr) - std::abs(ah) * (sr - sl));
 
     // for dual consistency term
     double s_av  = 0.5 * (sl + sr);
-    double dc_fl = nu * (sl - s_av) * +1.;
-    double dc_fr = nu * (sr - s_av) * -1.;
+    double dc_fl = geom.nu2 * (sl - s_av) * +1.;
+    double dc_fr = geom.nu2 * (sr - s_av) * -1.;
 
     // for viscous flux term
-    double dl = (1. / geom.elem_len(el)) * nu * (sl - sr) * +1.;
-    double dr = (1. / geom.elem_len(er)) * nu * (sr - sl) * -1.;
+    double dl = (1. / geom.elem_len(el)) * geom.nu2 * (sl - sr) * +1.;
+    double dr = (1. / geom.elem_len(er)) * geom.nu2 * (sr - sl) * -1.;
     double dm = 0.5 * (dl + dr);
-    double ql = nu * sl_x;
-    double qr = nu * sr_x;
+    double ql = geom.nu2 * sl_x;
+    double qr = geom.nu2 * sr_x;
     double qm = 0.5 * (ql + qr);
-    double qh = qm - eta * dm;
+    double qh = qm - geom.eta * dm;
 
     // for fourth order term
     double avg_s_xx  = 0.5 * (sl_xx + sr_xx);
@@ -154,10 +141,10 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
     double diff_sr    = sr - sl;
     double diff_sl_x  = sl_x - sr_x;
     double diff_sr_x  = sr_x - sl_x;
-    double sigl       = sig * ihl * ihl * ihl;
-    double taul       = tau * ihl;
-    double sigr       = sig * ihr * ihr * ihr;
-    double taur       = tau * ihr;
+    double sigl       = geom.sig * ihl * ihl * ihl;
+    double taul       = geom.tau * ihl;
+    double sigr       = geom.sig * ihr * ihr * ihr;
+    double taur       = geom.tau * ihr;
 
     for (usize ti = 0; ti < pp1; ++ti)
     {
@@ -188,20 +175,22 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       double tr_xxx = geom.edg_d3(elem_side::low,  ti) * iJ3;
 
       geom.idx_st(resid, el, ti) +=
-        c * avg_s_xxx * tl * +1 +
-        c * 0.5 * tl_xxx * diff_sl -
-        c * avg_s_xx * tl_x * +1 -
-        c * 0.5 * tl_xx * diff_sl_x +
-        c * sigl * diff_sl * tl * +1 +
-        c * taul * diff_sl_x * tl_x * +1;
+        geom.nu4 *
+          (avg_s_xxx * tl * +1 +
+           0.5 * tl_xxx * diff_sl -
+           avg_s_xx * tl_x * +1 -
+           0.5 * tl_xx * diff_sl_x +
+           sigl * diff_sl * tl * +1 +
+           taul * diff_sl_x * tl_x * +1);
 
       geom.idx_st(resid, er, ti) +=
-        c * avg_s_xxx * tr * -1 +
-        c * 0.5 * tr_xxx * diff_sr -
-        c * avg_s_xx * tr_x * -1 -
-        c * 0.5 * tr_xx * diff_sr_x +
-        c * sigr * diff_sr * tr * +1 +
-        c * taur * diff_sr_x * tr_x * +1;
+        geom.nu4 *
+          (avg_s_xxx * tr * -1 +
+           0.5 * tr_xxx * diff_sr -
+           avg_s_xx * tr_x * -1 -
+           0.5 * tr_xx * diff_sr_x +
+           sigr * diff_sr * tr * +1 +
+           taur * diff_sr_x * tr_x * +1);
     }
   }
 

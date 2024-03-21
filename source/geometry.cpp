@@ -18,11 +18,21 @@ enum struct elem_side
 // order to keep things simple.
 struct comp_geom
 {
+  // KS equation parameters (no equation set distinction in this code) ---
+
+  double nc;   // nonlinear coefficient
+  double nu2;  // second order viscosity coefficient
+  double nu4;  // fourth order viscosity coefficient
+
+  double eta;  // second order IP stabilization constant
+  double sig;  // fourth order IP stabilization constants
+  double tau;  // *
+
+  // geometry ---
+
   double l;   // domain length
   usize  ne;  // number of elements
   usize  p;   // element order (all elements same order for now)
-
-  // geometry ---
 
   // Jacobian / determinant
   // Only one for now, all elements are same size and geometry within elements
@@ -74,7 +84,8 @@ struct comp_geom
 
   // constructors etc. ---
 
-  comp_geom(double l_, usize ne_, usize p_);
+  comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
+            double nu4_, double eta_, double sig_, double tau_);
   ~comp_geom();
 
   comp_geom(const comp_geom& oth)            = delete;
@@ -143,8 +154,16 @@ usize comp_geom::size_st()
 }
 
 
-comp_geom::comp_geom(double l_, usize ne_, usize p_)
+comp_geom::comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
+                     double nu4_, double eta_, double sig_, double tau_)
 {
+  nc  = nc_;
+  nu2 = nu2_;
+  nu4 = nu4_;
+  eta = eta_;
+  sig = sig_;
+  tau = tau_;
+
   l  = l_;
   ne = ne_;
   p  = p_;

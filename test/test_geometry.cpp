@@ -10,7 +10,7 @@
 
 int test_mass_matrix()
 {
-  comp_geom geom(1., 3, 7);
+  comp_geom geom(1., 3, 7, 1., 1., 1., 1., 1., 1.);
 
   double* M = new double[(geom.p + 1) * (geom.p + 1)];
 
