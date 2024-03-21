@@ -66,7 +66,7 @@ void BDF1::matvec(double* v, double* mv)
 {
   const double erel = 1e-4;
 
-  double vnorm = norm(v, geom.size_st());
+  double vnorm = l2norm(v, geom.size_st());
   if (vnorm < DBL_EPSILON)
   {
     memset(mv, 0, geom.size_st() * sizeof(double));

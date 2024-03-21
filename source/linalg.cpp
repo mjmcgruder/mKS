@@ -56,7 +56,7 @@ void matmul(int m, int n, int k, double alpha, double* a, double* b,
 }
 
 
-double norm(double* a, usize len)
+double l2norm(double* a, usize len)
 {
   double sum = 0.;
   for (usize i = 0; i < len; ++i)
@@ -68,7 +68,7 @@ double norm(double* a, usize len)
 }
 
 
-double norm1(double* a, usize len)
+double l1norm(double* a, usize len)
 {
   double sum = 0.;
   for (usize i = 0; i < len; ++i)
@@ -77,18 +77,6 @@ double norm1(double* a, usize len)
   }
 
   return sum;
-}
-
-
-double norm_perelem(double* a, usize len)
-{
-  double sum = 0.;
-  for (usize i = 0; i < len; ++i)
-  {
-    sum += a[i] * a[i];
-  }
-
-  return sqrt((1. / double(len)) * sum);
 }
 
 

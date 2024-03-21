@@ -98,7 +98,7 @@ void GMRES(T& A, double* b, double* x, usize m,
     // first normalized krylov vector
     A.matvec(x, wsp.Ax);
     for (usize i = 0; i < m; ++i) { wsp.r0[i] = b[i] - wsp.Ax[i]; }
-    double r0_norm = norm(wsp.r0, m);
+    double r0_norm = l2norm(wsp.r0, m);
     for (usize i = 0; i < m; ++i) { Q(i, 0) = wsp.r0[i] / r0_norm; }
 
     // RHS setup
@@ -121,7 +121,7 @@ void GMRES(T& A, double* b, double* x, usize m,
         for (usize i = 0; i < m; ++i) { Q(i, n + 1) -= H(j, n) * Q(i, j); }
       }
       for (usize i = 0; i < m; ++i) { wsp.ko[i] = Q(i, n + 1); }
-      H(n + 1, n) = norm(wsp.ko, m);  // also copying for mem ordering...
+      H(n + 1, n) = l2norm(wsp.ko, m);  // also copying for mem ordering...
       for (usize i = 0; i < m; ++i) { Q(i, n + 1) /= H(n + 1, n); }
 
       /* Givens */
@@ -183,7 +183,7 @@ void GMRES(T& A, double* b, double* x, usize m,
 
     A.matvec(x, wsp.ko);  // ko not used at the moment
     for (usize i = 0; i < m; ++i) { wsp.ko[i] -= b[i]; }
-    double real_resid = norm(wsp.ko, m);
+    double real_resid = l2norm(wsp.ko, m);
     printf("  real resid: %+.17e\n", real_resid);
 
     if (isconverged) { break; }

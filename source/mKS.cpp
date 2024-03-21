@@ -6,6 +6,9 @@
 
 int main(int argc, char** argv)
 {
+  read_input("ifile");
+  exit(0);
+
   if (argc != 5)
   {
     printf("Usage: mKS <ne> <p> <nt> <dt>\n");
@@ -31,9 +34,9 @@ int main(int argc, char** argv)
   BDF1 bdf1(geom, dt);
 
   newton_settings settings;
-  settings.gmres.ninner = 50;
+  settings.gmres.ninner = 100;
   settings.gmres.nouter = 5;
-  settings.gmres.rtol   = 1e-2;
+  settings.gmres.rtol   = 1e-3;
   settings.nonlin_tol   = 1e-8;
   settings.max_iter     = 10;
 

@@ -8,28 +8,6 @@
 #include "linear_solver.cpp"
 
 
-void euler(comp_geom& geom, usize nt, double dt, double* state)
-{
-  double* resid = new double[geom.size_st()];
-  double* f     = new double[geom.size_st()];
-
-  for (usize it = 0; it < nt; ++it)
-  {
-    compute_residual(geom, state, resid, f);
-
-    printf("%zu: %+.3e\n", it, norm_perelem(f, geom.size_st()));
-
-    for (usize i = 0; i < geom.size_st(); ++i)
-    {
-      state[i] += dt * f[i];
-    }
-  }
-
-  delete[] resid;
-  delete[] f;
-}
-
-
 void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
 {
   double* resid = new double[geom.size_st()];
@@ -49,7 +27,7 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
 
     compute_residual(geom, y1, resid, k1);
 
-    printf("%zu: %+.3e\n", it, norm_perelem(k1, geom.size_st()));
+    printf("%zu: %+.3e\n", it, l2norm(k1, geom.size_st()));
 
     for (usize i = 0; i < geom.size_st(); ++i) y2[i] = y1[i] + 0.5 * dt * k1[i];
 
@@ -82,30 +60,6 @@ void rk4(comp_geom& geom, usize nt, double dt, double* y1, double* hist)
   delete[] y3;
   delete[] y4;
 }
-
-
-// void line_search_backtrack(BDF1& bdf1, double* tmpu, double* x, const double* uk)
-// {
-//   double norm_Fo = norm(bdf1.Fo, bdf1.geom.size_st());
-//   double norm_Fp;
-//   double s = 1.;
-//
-//   do
-//   {
-//     for (usize i = 0; i < bdf1.geom.size_st(); ++i) { tmpu[i] = uk[i] + x[i]; }
-//
-//     bdf1.uresid(tmpu, bdf1.Fp);
-//     double norm_Fp = norm(bdf1.Fp, bdf1.geom.size_st());
-//
-//     printf("line searching: initial: %f final: %f s=%f\n", norm_Fo, norm_Fp, s);
-//
-//     for (usize i = 0; i < bdf1.geom.size_st(); ++i) { x[i] *= 0.5; }
-//     s *= 0.5;
-//   }
-//   while (norm_Fp > norm_Fo);
-//
-//   // TODO: assign temp step to final step
-// }
 
 
 struct newton_workspace
@@ -153,7 +107,7 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
 {
   system.update_guess(x);
 
-  double nonlinear_residual = norm(system.F, m);
+  double nonlinear_residual = l2norm(system.F, m);
   printf("nonlinear residual: %+.17e\n", nonlinear_residual);
 
   usize newton_iters = 0;
@@ -169,7 +123,7 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
 
     system.update_guess(x);
 
-    nonlinear_residual = norm(system.F, m);
+    nonlinear_residual = l2norm(system.F, m);
     printf("finished nonlinear iter: %zu --- residual: %+.17e\n\n",
            newton_iters, nonlinear_residual);
 

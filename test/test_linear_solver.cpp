@@ -96,7 +96,7 @@ int test_GMRES()
   // test linear residual
   sys.matvec(x, tmp);
   for (usize i = 0; i < sys.m; ++i) { tmp[i] -= b[i]; }
-  double real_resid = norm(tmp, sys.m);
+  double real_resid = l2norm(tmp, sys.m);
   printf("real resid: %+.17e\n", real_resid);
 
 
