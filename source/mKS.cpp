@@ -13,9 +13,9 @@ int main(int argc, char** argv)
   settings.nonlin_tol   = 1e-8;
   settings.max_iter     = 10;
 
-  double nc  = 1.;
-  double nu2 = -1.;
-  double nu4 = 0.1111;
+  double nc  = 0.;
+  double nu2 = 0.1;
+  double nu4 = 0.;
   double eta = 16.;
   double sig = 4096.;
   double tau = 16.;
@@ -40,7 +40,8 @@ int main(int argc, char** argv)
   double* hist  = new double[(nt + 1) * geom.size_st()];
 
   // init_gaussian(geom, 0.1, 0.5, 0.1, state);
-  init_sines(geom, state);
+  // init_sines(geom, state);
+  init_constant(geom, 0.1, state);
 
   /* TIME STEPPING */
 

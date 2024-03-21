@@ -72,7 +72,10 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
   // element boundary flux (preiodic BCs)
   // each "element" deals with the boundary to its right
 
-  for (usize ei = 0; ei < geom.ne; ++ei)
+  usize start_edge = 1;
+  if (direchlet) { start_edge = 0; }
+
+  for (usize ei = start_edge; ei < geom.ne + 1; ++ei)
   {
     usize  pp1 = geom.p + 1;
     double J   = geom.J;
@@ -80,8 +83,10 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
     double iJ2 = iJ * iJ;
     double iJ3 = iJ * iJ * iJ;
 
-    double el = ei;                  // left element
-    double er = (ei + 1) % geom.ne;  // right element (with wrap around)
+    int el = ei - 1;        // left element
+    int er = ei % geom.ne;  // right element (with wrap around)
+    if (ei == 0 && direchlet)       { el = -1; }
+    if (ei == geom.ne && direchlet) { er = -1; }
 
     double sl = 0.;  // "left"  state, high side of left element
     double sr = 0.;  // "right" state, low side of right element
@@ -91,17 +96,39 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
 
     for (usize bi = 0; bi < pp1; ++bi)
     {
-      double Ul = geom.idx_st(state, el, bi);
-      double Ur = geom.idx_st(state, er, bi);
+      if (el >= 0)
+      {
+        double Ul = geom.idx_st(state, el, bi);
+        sl       += (geom.edg_bf(elem_side::high, bi)      ) * Ul;
+        sl_x     += (geom.edg_d1(elem_side::high, bi) * iJ ) * Ul;
+        sl_xx    += (geom.edg_d2(elem_side::high, bi) * iJ2) * Ul;
+        sl_xxx   += (geom.edg_d3(elem_side::high, bi) * iJ3) * Ul;
+      }
 
-      sl     += (geom.edg_bf(elem_side::high, bi)      ) * Ul;
-      sr     += (geom.edg_bf(elem_side::low,  bi)      ) * Ur;
-      sl_x   += (geom.edg_d1(elem_side::high, bi) * iJ ) * Ul;
-      sr_x   += (geom.edg_d1(elem_side::low,  bi) * iJ ) * Ur;
-      sl_xx  += (geom.edg_d2(elem_side::high, bi) * iJ2) * Ul;
-      sr_xx  += (geom.edg_d2(elem_side::low,  bi) * iJ2) * Ur;
-      sl_xxx += (geom.edg_d3(elem_side::high, bi) * iJ3) * Ul;
-      sr_xxx += (geom.edg_d3(elem_side::low,  bi) * iJ3) * Ur;
+      if (er >= 0)
+      {
+        double Ur = geom.idx_st(state, er, bi);
+        sr       += (geom.edg_bf(elem_side::low,  bi)      ) * Ur;
+        sr_x     += (geom.edg_d1(elem_side::low,  bi) * iJ ) * Ur;
+        sr_xx    += (geom.edg_d2(elem_side::low,  bi) * iJ2) * Ur;
+        sr_xxx   += (geom.edg_d3(elem_side::low,  bi) * iJ3) * Ur;
+      }
+    }
+
+    if (el < 0)
+    {
+      sl     = 3.;  // set value here
+      sl_x   = sr_x;
+      sl_xx  = sr_xx;
+      sl_xxx = sr_xxx;
+    }
+
+    if (er < 0)
+    {
+      sr     = 0.5;  // set value here
+      sr_x   = sl_x;
+      sr_xx  = sl_xx;
+      sr_xxx = sr_xxx;
     }
 
     double ihl = 1. / geom.elem_len(el);
@@ -152,45 +179,51 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       // geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * ad_flux;
       // geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * ad_flux;
 
-      // nonlinear term
-      geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * nl_flux;
-      geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * nl_flux;
+      if (el >= 0)
+      {
+        double tl     = geom.edg_bf(elem_side::high, ti);
+        double tl_x   = geom.edg_d1(elem_side::high, ti) * iJ;
+        double tl_xx  = geom.edg_d2(elem_side::high, ti) * iJ2;
+        double tl_xxx = geom.edg_d3(elem_side::high, ti) * iJ3;
+        // nonlinear term
+        geom.idx_st(resid, el, ti) += geom.edg_bf(elem_side::high, ti) * nl_flux;
+        // dual consistency term
+        geom.idx_st(resid, el, ti) -= geom.edg_d1(elem_side::high, ti) * iJ * dc_fl;
+        // viscous flux term
+        geom.idx_st(resid, el, ti) -= geom.edg_bf(elem_side::high, ti) * qh * +1.;
+        // fourth order term
+        geom.idx_st(resid, el, ti) +=
+          geom.nu4 *
+            (avg_s_xxx * tl * +1 +
+             0.5 * tl_xxx * diff_sl -
+             avg_s_xx * tl_x * +1 -
+             0.5 * tl_xx * diff_sl_x +
+             sigl * diff_sl * tl * +1 +
+             taul * diff_sl_x * tl_x * +1);
+      }
 
-      // dual consistency term
-      geom.idx_st(resid, el, ti) -= geom.edg_d1(elem_side::high, ti) * iJ * dc_fl;
-      geom.idx_st(resid, er, ti) -= geom.edg_d1(elem_side::low,  ti) * iJ * dc_fr;
-
-      // viscous flux term
-      geom.idx_st(resid, el, ti) -= geom.edg_bf(elem_side::high, ti) * qh * +1.;
-      geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * qh * -1.;
-
-      // fourth order term
-      double tl     = geom.edg_bf(elem_side::high, ti);
-      double tr     = geom.edg_bf(elem_side::low,  ti);
-      double tl_x   = geom.edg_d1(elem_side::high, ti) * iJ;
-      double tr_x   = geom.edg_d1(elem_side::low,  ti) * iJ;
-      double tl_xx  = geom.edg_d2(elem_side::high, ti) * iJ2;
-      double tr_xx  = geom.edg_d2(elem_side::low,  ti) * iJ2;
-      double tl_xxx = geom.edg_d3(elem_side::high, ti) * iJ3;
-      double tr_xxx = geom.edg_d3(elem_side::low,  ti) * iJ3;
-
-      geom.idx_st(resid, el, ti) +=
-        geom.nu4 *
-          (avg_s_xxx * tl * +1 +
-           0.5 * tl_xxx * diff_sl -
-           avg_s_xx * tl_x * +1 -
-           0.5 * tl_xx * diff_sl_x +
-           sigl * diff_sl * tl * +1 +
-           taul * diff_sl_x * tl_x * +1);
-
-      geom.idx_st(resid, er, ti) +=
-        geom.nu4 *
-          (avg_s_xxx * tr * -1 +
-           0.5 * tr_xxx * diff_sr -
-           avg_s_xx * tr_x * -1 -
-           0.5 * tr_xx * diff_sr_x +
-           sigr * diff_sr * tr * +1 +
-           taur * diff_sr_x * tr_x * +1);
+      if (er >= 0)
+      {
+        double tr     = geom.edg_bf(elem_side::low,  ti);
+        double tr_x   = geom.edg_d1(elem_side::low,  ti) * iJ;
+        double tr_xx  = geom.edg_d2(elem_side::low,  ti) * iJ2;
+        double tr_xxx = geom.edg_d3(elem_side::low,  ti) * iJ3;
+        // nonlinear term
+        geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * nl_flux;
+        // dual consistency term
+        geom.idx_st(resid, er, ti) -= geom.edg_d1(elem_side::low,  ti) * iJ * dc_fr;
+        // viscous flux term
+        geom.idx_st(resid, er, ti) -= geom.edg_bf(elem_side::low,  ti) * qh * -1.;
+        // fourth order term
+        geom.idx_st(resid, er, ti) +=
+          geom.nu4 *
+            (avg_s_xxx * tr * -1 +
+             0.5 * tr_xxx * diff_sr -
+             avg_s_xx * tr_x * -1 -
+             0.5 * tr_xx * diff_sr_x +
+             sigr * diff_sr * tr * +1 +
+             taur * diff_sr_x * tr_x * +1);
+      }
     }
   }
 
