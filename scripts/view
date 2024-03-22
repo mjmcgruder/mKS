@@ -59,17 +59,18 @@ def read_hist(filename):
 
 if __name__ == '__main__':
 
-  if len(sys.argv) != 3:
-    print('Usage: view <rend interval> <frame time (ms)>')
+  if len(sys.argv) != 5:
+    print('Usage: view <file> <type> <rend interval> <frame time (ms)>')
     sys.exit(0)
 
   eres          = 100
-  rend_interval = int(sys.argv[1])
-  frame_time    = int(sys.argv[2])
+  rend_type     = sys.argv[2]
+  rend_interval = int(sys.argv[3])
+  frame_time    = int(sys.argv[4])
 
   print('reading state...')
 
-  geom, hist, nt, dt = read_hist('hist.ks')
+  geom, hist, nt, dt = read_hist(sys.argv[1])
 
   t_f = (nt - 1) * dt
 
@@ -98,34 +99,41 @@ if __name__ == '__main__':
 
   fig, ax = plt.subplots()
 
-  # ax.set_xlim(0., geom.l)
-  # ax.set_xlabel('x')
-  # ax.set_ylabel('t')
-  #
-  # for ie in range(geom.ne):
-  #   ax.imshow(
-  #     plotting_hist[:, :, ie],
-  #     extent=(plotting_pos[0, ie], plotting_pos[-1, ie], 0, t_f),
-  #     vmin=plotting_min,
-  #     vmax=plotting_max,
-  #     origin='lower'
-  #   )
-  #
-  # ax.set_aspect((2. / t_f) / (1. / geom.l))
+  if rend_type == 'xt':
 
+    ax.set_xlim(0., geom.l)
+    ax.set_xlabel('x')
+    ax.set_ylabel('t')
 
-  lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
-  ax.set_ylim([plotting_min, plotting_max])
+    for ie in range(geom.ne):
+      ax.imshow(
+        plotting_hist[:, :, ie],
+        extent=(plotting_pos[0, ie], plotting_pos[-1, ie], 0, t_f),
+        vmin=plotting_min,
+        vmax=plotting_max,
+        origin='lower'
+      )
 
-  def update(frame):
-    for j in range(len(lines)):
-      lines[j].set_xdata(plotting_pos[:, j])
-      lines[j].set_ydata(plotting_hist[frame * rend_interval, :, j])
-    return lines
+    ax.set_aspect((2. / t_f) / (1. / geom.l))
 
-  ani = animation.FuncAnimation(fig=fig, func=update,
-                                frames=math.floor(nt / rend_interval),
-                                interval=frame_time)
+  elif rend_type == 'anim':
 
+    lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
+    ax.set_ylim([plotting_min, plotting_max])
+
+    def update(frame):
+      for j in range(len(lines)):
+        lines[j].set_xdata(plotting_pos[:, j])
+        lines[j].set_ydata(plotting_hist[frame * rend_interval, :, j])
+      return lines
+
+    ani = animation.FuncAnimation(fig=fig, func=update,
+                                  frames=math.floor(nt / rend_interval),
+                                  interval=frame_time)
+
+  else:
+
+    print(f'unknown render type {rend_type}')
+    sys.exit(1)
 
   plt.show()

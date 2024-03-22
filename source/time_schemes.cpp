@@ -17,7 +17,6 @@ class BDF1
   double*    un;     // previous step
   // solution information
   comp_geom& geom;   // computational geometry
-  double     dt;     // time step
   // perturbed workspace
   double*    up;     // perturbed linearization state, for finite difference
   double*    Fp;     // perturbed state unsteady residual
@@ -27,7 +26,8 @@ class BDF1
 
  public:
 
-  double* F;  // function eval for newton and Jacobian
+  double* F;   // function eval for newton and Jacobian
+  double  dt;  // time step, available for pseudo transient continuation
 
   // computational routines
 

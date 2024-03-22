@@ -75,7 +75,7 @@ quadrature_rule get_quadrature_rule(usize p, usize extra_points = 0)
   usize n        = p + 1 + extra_points;
   usize rule_num = n - 1;
 
-  if (rule_num > num_gauss_legendre_rules)
+  if (rule_num > num_gauss_legendre_rules - 1)
   {
     printf("requested quadrature rule with %zu points, \n"
            "  only quadrature rules up to %zu points supported!\n",

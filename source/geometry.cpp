@@ -42,8 +42,10 @@ struct comp_geom
   usize  p;   // element order (all elements same order for now)
 
   bound_type btype;
-  double     dirichlet_left;
-  double     dirichlet_right;
+  double     value_l;
+  double     value_r;
+  double     deriv_l;
+  double     deriv_r;
 
   // Jacobian / determinant
   // Only one for now, all elements are same size and geometry within elements
@@ -101,8 +103,9 @@ struct comp_geom
 
   comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
             double nu4_, double eta_, double sig_, double tau_,
-            bound_type btype_ = periodic, double dirichlet_left_ = 0.,
-            double dirichlet_right_ = 0., double (*source) (double x) = nullptr);
+            bound_type btype_ = periodic, double value_l_ = 0.,
+            double value_r_ = 0., double deriv_l_ = 0., double deriv_r_ = 0.,
+            double (*source_)(double x) = nullptr);
   ~comp_geom();
 
   comp_geom(const comp_geom& oth)            = delete;
@@ -173,8 +176,9 @@ usize comp_geom::size_st()
 
 comp_geom::comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
                      double nu4_, double eta_, double sig_, double tau_,
-                     bound_type btype_, double dirichlet_left_,
-                     double dirichlet_right_, double (*source_) (double x))
+                     bound_type btype_, double value_l_, double value_r_,
+                     double deriv_l_, double deriv_r_,
+                     double (*source_)(double x))
 {
   nc  = nc_;
   nu2 = nu2_;
@@ -187,9 +191,11 @@ comp_geom::comp_geom(double l_, usize ne_, usize p_, double nc_, double nu2_,
   ne = ne_;
   p  = p_;
 
-  btype           = btype_;
-  dirichlet_left  = dirichlet_left_;
-  dirichlet_right = dirichlet_right_;
+  btype   = btype_;
+  value_l = value_l_;
+  value_r = value_r_;
+  deriv_l = deriv_l_;
+  deriv_r = deriv_r_;
 
   qrule = get_quadrature_rule(p);
 

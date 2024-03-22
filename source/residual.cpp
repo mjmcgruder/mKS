@@ -125,16 +125,16 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
 
     if (el < 0)
     {
-      sl     = geom.dirichlet_left;
-      sl_x   = sr_x;
+      sl     = geom.value_l;
+      sl_x   = geom.deriv_l;
       sl_xx  = sr_xx;
       sl_xxx = sr_xxx;
     }
 
     if (er < 0)
     {
-      sr     = geom.dirichlet_right;
-      sr_x   = sl_x;
+      sr     = geom.value_r;
+      sr_x   = geom.deriv_r;
       sr_xx  = sl_xx;
       sr_xxx = sr_xxx;
     }

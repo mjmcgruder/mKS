@@ -19,4 +19,4 @@ bin/view: scripts/*
 
 bin/test: test/* source/*
 	@mkdir -p bin
-	g++ -O0 -g3 -std=c++17 -Itest -Isource -obin/test test/test.cpp -llapack -lblas
+	g++ -Ofast -march=native -mtune=native -std=c++17 -Itest -Isource -obin/test test/test.cpp -llapack -lblas

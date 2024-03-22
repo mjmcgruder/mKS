@@ -6,6 +6,7 @@
 #include "test_geometry.cpp"
 #include "test_linear_solver.cpp"
 #include "test_newton.cpp"
+#include "test_fourth.cpp"
 
 
 #define RUN_TEST(func, name)         \
@@ -32,4 +33,5 @@ int main(int argc, char** argv)
   RUN_TEST(test_mass_matrix(), "mass matrix sum length");
   RUN_TEST(test_GMRES(), "GMRES (laplace)");
   RUN_TEST(test_newton(), "newton bowl");
+  RUN_TEST(test_convergence(), "fourth order term convergence")
 }
