@@ -19,25 +19,6 @@ class comp_geom:
   p:  int
 
 
-def read_state(filename):
-
-  f = open(filename, 'rb')
-  b = f.read()
-
-  l, ne, p = unpack('@dNN', b[:24])
-  geom     = comp_geom(l, ne, p)
-
-  state_size = (geom.p + 1) * geom.ne
-
-  state = unpack(f'@{state_size}d', b[24:])
-  state = np.array(state)
-  state = np.reshape(state, (geom.ne, geom.p + 1));
-
-  f.close()
-
-  return geom, state
-
-
 def read_hist(filename):
 
   f = open(filename, 'rb')

@@ -2,22 +2,10 @@
 
 
 #include <cstdio>
+#include <map>
+
 
 #include "geometry.cpp"
-
-
-void write_state(comp_geom& geom, double* state, const char* filename)
-{
-  FILE* f = fopen(filename, "w");
-
-  fwrite(&geom.l,  sizeof(double), 1, f);
-  fwrite(&geom.ne, sizeof(usize),  1, f);
-  fwrite(&geom.p,  sizeof(usize),  1, f);
-
-  fwrite(state, sizeof(double), geom.size_st(), f);
-
-  fclose(f);
-}
 
 
 void write_hist(comp_geom& geom, double* hist, usize nt, double dt,
@@ -37,30 +25,39 @@ void write_hist(comp_geom& geom, double* hist, usize nt, double dt,
 }
 
 
-struct options
+enum input_type
 {
-  // equation coefficients
-  double a;
-  double b;
-  double c;
-  // stabilization coefficients
-  double eta;
-  double sig;
-  double tau;
-  // temporal evolution
-  usize  nt;
-  double dt;
-  // spatial resolution
-  usize  ne;
-  usize  p;
-  double l;
-  // nonlinear solver
-  double nonlin_tol;
-  double max_nonlin_iters;
-  // linear solver
-  usize  gmres_ninner;
-  usize  gmres_nouter;
-  double gmres_rtol;
+  itype_usize,
+  itype_double
+};
+
+
+struct option
+{
+  input_type  type;
+  void*       addr;
+  const char* desc;
+};
+
+
+option mkopt(usize& data, const char* desc)
+{
+  return {itype_usize, &data, desc};
+}
+
+option mkopt(double& data, const char* desc)
+{
+  return {itype_double, &data, desc};
+}
+
+
+struct option_comp
+{
+  bool operator()(const char* a, const char* b) const
+  {
+    if (strcmp(a, b) < 0) { return true;  }
+    else                  { return false; }
+  }
 };
 
 
@@ -124,7 +121,8 @@ bool read_line(FILE* f, char buf[LINE_BUF_SIZE])
 }
 
 
-void read_input(const char* filename)
+void read_input(const char* filename,
+                std::map<const char*, option, option_comp>& options)
 {
   FILE* f = fopen(filename, "r");
   if (f == nullptr)
@@ -148,8 +146,6 @@ void read_input(const char* filename)
       exit(1);
     }
 
-    printf("%s\n", buf);
-
     if (strlen(buf) == 0) { continue; }
 
     char key[LINE_BUF_SIZE];
@@ -161,8 +157,24 @@ void read_input(const char* filename)
       exit(1);
     }
 
-    printf("%s\n", key);
-    printf("%s\n", val);
+    auto it = options.find(key);
+    if (it == options.end())
+    {
+      printf("Option \"%s\" not recognized\n", key);
+      exit(1);
+    }
+
+    option optinfo = it->second;
+
+    switch (optinfo.type)
+    {
+      case itype_usize:
+        *((usize*)optinfo.addr) = (usize)strtoull(val, nullptr, 10);
+        break;
+      case itype_double:
+        *((double*)optinfo.addr) = strtod(val, nullptr);
+        break;
+    }
   }
 
   fclose(f);

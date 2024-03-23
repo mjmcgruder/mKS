@@ -6,12 +6,17 @@
 
 int main(int argc, char** argv)
 {
-  newton_settings settings;
-  settings.gmres.ninner = 100;
-  settings.gmres.nouter = 5;
-  settings.gmres.rtol   = 1e-3;
-  settings.nonlin_tol   = 1e-8;
-  settings.max_iter     = 10;
+  if (argc != 2)
+  {
+    printf("Usage: mKS <-h | ifile>\n");
+    exit(0);
+  }
+
+  usize  ne = 8;
+  usize  p  = 3;
+
+  usize  nt = 1;
+  double dt = 1e-3;
 
   double nc  = 1.;
   double nu2 = 1.;
@@ -20,19 +25,42 @@ int main(int argc, char** argv)
   double sig = 4096.;
   double tau = 16.;
 
-  // read_input("ifile");
-  // exit(0);
+  newton_settings settings;
+  settings.gmres.ninner = 100;
+  settings.gmres.nouter = 5;
+  settings.gmres.rtol   = 1e-3;
+  settings.nonlin_tol   = 1e-8;
+  settings.max_iter     = 10;
 
-  if (argc != 5)
+  std::map<const char*, option, option_comp> options;
+  options.emplace("nelem",            mkopt(ne, "element count"));
+  options.emplace("p",                mkopt(p, "polynomial order"));
+  options.emplace("nstep",            mkopt(nt, "number of time steps"));
+  options.emplace("dt",               mkopt(dt, "time step size"));
+  options.emplace("gmres_ninner",     mkopt(settings.gmres.ninner, "max GMRES Krylov subspace size"));
+  options.emplace("gmres_nouter",     mkopt(settings.gmres.nouter, "max GMRES Krylov subspace rebuilds"));
+  options.emplace("gmres_rtol",       mkopt(settings.gmres.rtol, "relative linear residual convergence tolerance"));
+  options.emplace("nonlin_tol",       mkopt(settings.nonlin_tol, "nonlinear residual tolerance"));
+  options.emplace("nonlin_max_iters", mkopt(settings.max_iter, "max noninear iterations per time step"));
+  options.emplace("eqn_nc",           mkopt(nc,  "nonlinear coefficient"));
+  options.emplace("eqn_nu2",          mkopt(nu2, "second order viscosity coefficient"));
+  options.emplace("eqn_nu4",          mkopt(nu4, "fourth order viscosity coefficient"));
+  options.emplace("ip_eta",           mkopt(eta, "second order IP stabilization constant"));
+  options.emplace("ip_sig",           mkopt(sig, "fourth order IP stabilization constant 1"));
+  options.emplace("ip_tau",           mkopt(tau, "fourth order IP stabilization constant 2"));
+
+  if (strcmp(argv[1], "-h") == 0)
   {
-    printf("Usage: mKS <ne> <p> <nt> <dt>\n");
+    for (const auto& i : options)
+    {
+      printf("%-20s : %s\n", i.first, i.second.desc);
+    }
     exit(0);
   }
-
-  const usize  ne = strtoull(argv[1], nullptr, 10);
-  const usize  p  = strtoull(argv[2], nullptr, 10);
-  const usize  nt = strtoull(argv[3], nullptr, 10);
-  const double dt = strtod(argv[4], nullptr);
+  else
+  {
+    read_input("ifile", options);
+  }
 
   comp_geom geom(2. * PI, ne, p,
                  nc, nu2, nu4, eta, sig, tau,
