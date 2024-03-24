@@ -127,7 +127,7 @@ void read_input(const char* filename,
   FILE* f = fopen(filename, "r");
   if (f == nullptr)
   {
-    printf("Failed to open input file %s\n", filename);
+    printf("failed to open input file \"%s\"\n", filename);
     exit(1);
   }
 
@@ -153,14 +153,14 @@ void read_input(const char* filename,
     bool keyval_read_ok = read_keyval(buf, key, val);
     if (!keyval_read_ok)
     {
-      printf("Failed to read key value pair at line %zu\n", line);
+      printf("failed to read key value pair at line %zu\n", line);
       exit(1);
     }
 
     auto it = options.find(key);
     if (it == options.end())
     {
-      printf("Option \"%s\" not recognized\n", key);
+      printf("option \"%s\" not recognized\n", key);
       exit(1);
     }
 

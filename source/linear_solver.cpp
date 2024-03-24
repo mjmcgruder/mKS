@@ -9,9 +9,10 @@
 
 struct GMRES_settings
 {
-  usize  ninner;
-  usize  nouter;
-  double rtol;
+  usize  ninner;  // number of inner iterations
+  usize  nouter;  // number of outer iterations
+  double rtol;    // relative residual tolerance
+  double ctol;    // cutoff residual tolerance
 };
 
 
@@ -30,6 +31,10 @@ struct GMRES_workspace
   double* r0;
   double* ki;
   double* ko;
+
+  // print widths
+  int pw_inn;
+  int pw_out;
 
   // ---
 
@@ -56,6 +61,9 @@ GMRES_workspace::GMRES_workspace(GMRES_settings settings, usize m)
   r0 = new double[m];
   ki = new double[m];
   ko = new double[m];
+
+  pw_inn = int(floor(log10(settings.ninner))) + 1;
+  pw_out = int(floor(log10(settings.nouter))) + 1;
 }
 
 
@@ -86,7 +94,11 @@ void GMRES(T& A, double* b, double* x, usize m,
 #define Q(r, c) (wsp.Qmat[(r) * (set.ninner + 1) + (c)])
 #define H(r, c) (wsp.Hmat[(r) * (set.ninner) + (c)])
 
-  bool isconverged = false;
+  usize inner_atleast = 1;  // perform at least this many inner iterations
+
+  double reference_resid    = 0.;
+  bool   isconverged_krylov = false;
+  bool   isconverged_full   = false;
 
   for (usize o = 0; o < set.nouter; ++o)
   {
@@ -101,9 +113,16 @@ void GMRES(T& A, double* b, double* x, usize m,
     double r0_norm = l2norm(wsp.r0, m);
     for (usize i = 0; i < m; ++i) { Q(i, 0) = wsp.r0[i] / r0_norm; }
 
+    if (o == 0) {reference_resid = r0_norm; }
+
+    printf("  %*zu : %.8e --- ", wsp.pw_out, o + 1, r0_norm);
+
     // RHS setup
     memset(wsp.betae, 0, (set.ninner + 1) * sizeof(double));
     wsp.betae[0] = r0_norm;
+
+    double resid_krylov;
+    double resid_full;
 
     usize n = 0;
     for (n = 0; n < set.ninner; ++n)
@@ -148,13 +167,12 @@ void GMRES(T& A, double* b, double* x, usize m,
       wsp.betae[n + 1] = -wsp.sn[n] * wsp.betae[n];
       wsp.betae[n]     =  wsp.cs[n] * wsp.betae[n];
 
-      double residual = fabs(wsp.betae[n + 1]);
+      resid_krylov = fabs(wsp.betae[n + 1]);
 
-      // printf("  %zu %zu : %+.17e\n", o, n, residual);
-
-      if (residual < set.rtol * r0_norm)
+      if (n >= (inner_atleast - 1) &&
+          (resid_krylov < set.rtol * reference_resid || resid_krylov < set.ctol))
       {
-        isconverged = true;
+        isconverged_krylov = true;
         break;
       }
     }
@@ -183,10 +201,30 @@ void GMRES(T& A, double* b, double* x, usize m,
 
     A.matvec(x, wsp.ko);  // ko not used at the moment
     for (usize i = 0; i < m; ++i) { wsp.ko[i] -= b[i]; }
-    double real_resid = l2norm(wsp.ko, m);
-    printf("  real resid: %+.17e\n", real_resid);
+    resid_full = l2norm(wsp.ko, m);
 
-    if (isconverged) { break; }
+    isconverged_full =
+      resid_full < set.rtol * reference_resid || resid_full < set.ctol;
+
+    bool residuals_agree = isconverged_krylov && isconverged_full;
+
+    printf("%*zu : %.8e (%.8e)", wsp.pw_inn, n + 1, resid_full, resid_krylov);
+
+    if (isconverged_krylov && !residuals_agree) { printf(" d"); }
+
+    printf("\n");
+
+    if (residuals_agree)
+    {
+      break;  // residuals agree
+    }
+    else if (isconverged_krylov)
+    {
+      inner_atleast = set.ninner / 2;  // residuals disagree, try again
+      continue;
+    }
+
+    inner_atleast = 1;
   }
 
 #undef Q
