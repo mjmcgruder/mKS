@@ -64,18 +64,37 @@ void BDF1::uresid(double* u, double* F)
 
 void BDF1::matvec(double* v, double* mv)
 {
-  const double erel = 1e-4;
-
-  double vnorm = l2norm(v, geom.size_st());
-  if (vnorm < DBL_EPSILON)
+  double l2vnorm = l2norm(v, geom.size_st());
+  if (l2vnorm < DBL_EPSILON)
   {
     memset(mv, 0, geom.size_st() * sizeof(double));
     return;
   }
 
-  double vdotu = std::abs(dot(uk, v, geom.size_st()));
+  // just set it
 
-  double eps  = (erel / vnorm) * vdotu;
+  // double eps = 1e-0;
+
+  // ANK paper strat
+
+  const double erel = 1e-6;
+  const double umin = 1e-4;
+
+  double l1vnorm = l1norm(v, geom.size_st());
+  double vdotu   = dot(uk, v, geom.size_st());
+
+  double eps;
+  if (std::abs(vdotu) > umin * l1vnorm)
+  {
+    eps = erel * vdotu / (l2vnorm * l2vnorm);
+  }
+  else
+  {
+    double sign = (vdotu >= 0.) ? +1. : -1.;
+    eps = erel * umin * sign * l1vnorm / (l2vnorm * l2vnorm);
+  }
+
+  // printf("%+.3e : %+.3e\n", eps, vnorm);
   double ieps = 1. / eps;
 
   for (usize i = 0; i < geom.size_st(); ++i) { up[i] = uk[i] + eps * v[i]; }

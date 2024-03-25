@@ -50,7 +50,9 @@ double manufactured_source_4(double x)
   const double c = GAUSSIAN_C;
 
   return -(a * exp(-((x - b) * (x - b)) / (2. * c * c)) *
-         (b * b * b * b - 4. * b * b * b * x - 6. * b * b * (c * c - x * x) + 4. * b * (3. * c * c * x - x * x * x) + 3. * c * c * c * c - 6. * c * c * x * x + x * x * x * x)) /
+         (b * b * b * b - 4. * b * b * b * x - 6. * b * b * (c * c - x * x) +
+          4. * b * (3. * c * c * x - x * x * x) + 3. * c * c * c * c -
+          6. * c * c * x * x + x * x * x * x)) /
          (c * c * c * c * c * c * c * c);
 }
 
@@ -58,19 +60,20 @@ double manufactured_source_4(double x)
 int test_convergence()
 {
   usize ne = 32;
-  usize p  = 3;
+  usize p  = 7;
 
   double nc  = 0.;
   double nu2 = 0.;
   double nu4 = 1.;
-  double eta = 16.;
-  double sig = 4096.;
-  double tau = 16.;
+  double eta = 8.;
+  double sig = 729.;
+  double tau = 9.;
 
   newton_settings settings;
   settings.gmres.ninner = ne * (p + 1);
-  settings.gmres.nouter = 5;
+  settings.gmres.nouter = 10;
   settings.gmres.rtol   = 1e-4;
+  settings.gmres.ctol   = 1e-11;
   settings.nonlin_tol   = 1e-10;
   settings.max_iter     = 10;
 
@@ -86,7 +89,7 @@ int test_convergence()
 
   init_constant(geom, 0.5, state);
 
-  BDF1 bdf1(geom, 0.1);
+  BDF1 bdf1(geom, 0.01);
 
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());
@@ -94,7 +97,7 @@ int test_convergence()
   bdf1.update_step(state);
 
   double t = 0;
-  for (usize it = 0; it < 512; ++it)
+  for (usize it = 0; it < 128; ++it)
   {
     printf("\n\n");
     printf("TIME STEP %zu, t = %f, dt = %f\n", it, t, bdf1.dt);
@@ -105,12 +108,15 @@ int test_convergence()
     bdf1.update_step(state);
 
     t       += bdf1.dt;
-    // bdf1.dt *= 1.1;
+    if (bdf1.dt < 1.)
+    {
+      bdf1.dt *= 1.1;
+    }
   }
 
   // calculate error ---
 
-  quadrature_rule qrule = get_quadrature_rule(0, 7);
+  quadrature_rule qrule = get_quadrature_rule(0, 15);
 
   double* b_eval = new double[geom.p + 1];
 
@@ -140,9 +146,11 @@ int test_convergence()
     }
   }
 
+  err = sqrt(err);
+
   delete[] b_eval;
 
-  printf("error: %+.17e\n", err);
+  printf("L2 error: %.17e\n", err);
 
   write_hist(geom, state, 1., 1., "convergence_test.ks");
 

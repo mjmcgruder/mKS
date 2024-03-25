@@ -5,7 +5,7 @@
 import scipy as sp
 
 
-n_max = 8
+n_max = 16
 
 
 def print_array(a):
