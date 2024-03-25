@@ -97,6 +97,8 @@ if __name__ == '__main__':
 
     ax.set_aspect((2. / t_f) / (1. / geom.l))
 
+    fig.savefig('xt.png', dpi=500, bbox_inches='tight')
+
   elif rend_type == 'anim':
 
     lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
