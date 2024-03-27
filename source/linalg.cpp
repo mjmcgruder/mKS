@@ -56,7 +56,7 @@ void matmul(int m, int n, int k, double alpha, double* a, double* b,
 }
 
 
-double l2norm(double* a, usize len)
+double l2norm(const double* a, usize len)
 {
   double sum = 0.;
   for (usize i = 0; i < len; ++i)
@@ -68,7 +68,7 @@ double l2norm(double* a, usize len)
 }
 
 
-double l1norm(double* a, usize len)
+double l1norm(const double* a, usize len)
 {
   double sum = 0.;
   for (usize i = 0; i < len; ++i)
@@ -80,7 +80,7 @@ double l1norm(double* a, usize len)
 }
 
 
-double dot(double* a, double* b, usize len)
+double dot(const double* a, const double* b, usize len)
 {
   double sum = 0.;
   for (usize i = 0; i < len; ++i) { sum += a[i] * b[i]; }

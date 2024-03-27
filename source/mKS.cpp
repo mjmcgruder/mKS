@@ -75,11 +75,13 @@ int main(int argc, char** argv)
   /* TIME STEPPING */
 
   BDF1 bdf1(geom, dt);
+  BDF2 bdf2(geom, dt);
 
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());
 
   bdf1.update_step(state);
+  bdf2.update_step(state);
 
   for (usize it = 0; it < nt; ++it)
   {
@@ -89,9 +91,16 @@ int main(int argc, char** argv)
 
     memcpy(hist + it * geom.size_st(), state, geom.size_st() * sizeof(double));
 
-    newton_solve(bdf1, state, geom.size_st(), settings, gwsp, nwsp);
+    if (it == 0)
+    {
+      newton_solve(bdf1, state, geom.size_st(), settings, gwsp, nwsp);
+    }
+    else
+    {
+      newton_solve(bdf2, state, geom.size_st(), settings, gwsp, nwsp);
+    }
 
-    bdf1.update_step(state);
+    bdf2.update_step(state);
   }
 
   memcpy(hist + nt * geom.size_st(), state, geom.size_st() * sizeof(double));
