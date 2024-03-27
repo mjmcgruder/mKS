@@ -191,9 +191,9 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         geom.idx_st(resid, el, ti) +=
           geom.nu4 *
             (avg_s_xxx * tl * +1 +
-             0.5 * tl_xxx * diff_sl -
+             0.5 * tl_xxx * diff_sl * +1 -
              avg_s_xx * tl_x * +1 -
-             0.5 * tl_xx * diff_sl_x +
+             0.5 * tl_xx * diff_sl_x * +1 +
              sigl * diff_sl * tl * +1 +
              taul * diff_sl_x * tl_x * +1);
       }
@@ -213,9 +213,9 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         geom.idx_st(resid, er, ti) +=
           geom.nu4 *
             (avg_s_xxx * tr * -1 +
-             0.5 * tr_xxx * diff_sr -
+             0.5 * tr_xxx * diff_sr * -1 -
              avg_s_xx * tr_x * -1 -
-             0.5 * tr_xx * diff_sr_x +
+             0.5 * tr_xx * diff_sr_x * -1 +
              sigr * diff_sr * tr * +1 +
              taur * diff_sr_x * tr_x * +1);
       }

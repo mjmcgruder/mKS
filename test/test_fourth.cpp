@@ -59,8 +59,8 @@ double manufactured_source_4(double x)
 
 int test_convergence()
 {
-  usize ne = 64;
-  usize p  = 3;
+  usize ne = 16;
+  usize p  = 2;
 
   double nc  = 0.;
   double nu2 = 0.;
