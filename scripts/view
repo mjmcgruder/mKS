@@ -3,13 +3,18 @@
 
 import sys
 import math
-import numpy                as np
-import matplotlib.pyplot    as plt
-import matplotlib.animation as animation
+import time
+import argparse
 
 from struct      import unpack
 from dataclasses import dataclass
-from gen_bfuncs  import lagrange1d
+
+import numpy                as np
+import matplotlib.pyplot    as plt
+import matplotlib.animation as animation
+import matplotlib.figure
+
+from gen_bfuncs import lagrange1d
 
 
 @dataclass
@@ -38,24 +43,56 @@ def read_hist(filename):
   return geom, hist, nt, dt
 
 
-if __name__ == '__main__':
+def main():
 
-  if len(sys.argv) != 5:
-    print('Usage: view <file> <type> <rend interval> <frame time (ms)>')
-    sys.exit(0)
+  parser = argparse.ArgumentParser(description='very slow plotter for mKS')
+
+  parser.add_argument('-f',
+                      required=True,
+                      metavar='history_file',
+                      help='mKS history file name')
+  parser.add_argument('-v',
+                      choices=['xt', 'anim'],
+                      required=True,
+                      metavar='view_type',
+                      help='choice of animation or x-t diagram')
+  parser.add_argument('-i',
+                      type=int,
+                      default=1,
+                      metavar='increment',
+                      help='skip this many steps per frame in animation rendering')
+  parser.add_argument('-t',
+                      type=float,
+                      default=16.67,
+                      metavar='frame_time',
+                      help='animation frame time in ms')
+  parser.add_argument('-s',
+                      action='store_true',
+                      help='set to save x-t diagram plot')
+
+  options = parser.parse_args()
 
   eres          = 100
-  rend_type     = sys.argv[2]
-  rend_interval = int(sys.argv[3])
-  frame_time    = int(sys.argv[4])
+  fname         = options.f
+  rend_type     = options.v
+  rend_interval = options.i
+  frame_time    = options.t
+  save_xt       = options.s
 
-  print('reading state...')
 
-  geom, hist, nt, dt = read_hist(sys.argv[1])
+  print('reading state history...')
+  t1 = time.process_time()
+
+  geom, hist, nt, dt = read_hist(fname)
 
   t_f = (nt - 1) * dt
 
-  print('pre-computing basis functions...')
+  duration = time.process_time() - t1
+  print(f'  done in {duration * 1000:.1f}ms')
+
+
+  print('evaluating state for all space and time...')
+  t1 = time.process_time()
 
   p     = np.linspace(-1., 1., eres)
   basis = np.empty((geom.p + 1, eres))
@@ -69,18 +106,22 @@ if __name__ == '__main__':
   plotting_max = np.max(plotting_hist)
   plotting_min = np.min(plotting_hist)
 
-  print('computing x-axis positions...')
-
   elem_len     = geom.l / geom.ne
   plotting_pos = np.empty((eres, geom.ne))
   for ie in range(geom.ne):
     plotting_pos[:, ie] = ie * elem_len + (0.5 * (p + 1.)) * elem_len
 
-  print('plotting...')
+  duration = time.process_time() - t1
+  print(f'  done in {duration * 1000:.1f}ms')
 
-  fig, ax = plt.subplots()
+
+  print('rendering...')
+  t1 = time.process_time()
 
   if rend_type == 'xt':
+
+    w, h = matplotlib.figure.figaspect(1.5)
+    fig, ax = plt.subplots(figsize=(2. * w, 2. * h))
 
     ax.set_xlim(0., geom.l)
     ax.set_xlabel('x')
@@ -97,9 +138,12 @@ if __name__ == '__main__':
 
     ax.set_aspect((2. / t_f) / (1. / geom.l))
 
-    fig.savefig('xt.png', dpi=500, bbox_inches='tight')
+    if save_xt:
+      fig.savefig('xt.png', dpi=250, bbox_inches='tight')
 
   elif rend_type == 'anim':
+
+    fig, ax = plt.subplots()
 
     lines = ax.plot(plotting_pos, plotting_hist[0], 'k')
     ax.set_ylim([plotting_min, plotting_max])
@@ -119,4 +163,13 @@ if __name__ == '__main__':
     print(f'unknown render type {rend_type}')
     sys.exit(1)
 
+  duration = time.process_time() - t1
+  print(f'  done in {duration * 1000:.1f}ms')
+
+
   plt.show()
+
+
+if __name__ == '__main__':
+
+  main()
