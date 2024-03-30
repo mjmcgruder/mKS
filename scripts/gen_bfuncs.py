@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
   expand_pow = rw.create_expand_pow_optimization(128)
 
-  p_max = 7
+  p_max = 15
 
   x = sy.Symbol('x')
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
   # generate derivatives
 
-  for d in range(1, 5):
+  for d in range(1, 4):
     print(f'DERIVATIVE {d}\n')
     for p in range(0, p_max + 1):
       evals = sym_evals[p]
