@@ -139,7 +139,7 @@ def main():
     ax.set_aspect((2. / t_f) / (1. / geom.l))
 
     if save_xt:
-      fig.savefig('xt.png', dpi=250, bbox_inches='tight')
+      fig.savefig(f'{fname}.png', dpi=250, bbox_inches='tight')
 
   elif rend_type == 'anim':
 
