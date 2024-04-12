@@ -87,7 +87,7 @@ int test_GMRES()
   GMRES_settings set;
   set.ninner = 50;
   set.nouter = 10;
-  set.rtol   = 1e-10;
+  set.rtol   = 1e-14;
 
   GMRES_workspace wsp(set, sys.m);
 

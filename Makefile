@@ -11,7 +11,7 @@ clean:
 
 bin/mKS: source/*
 	@mkdir -p bin
-	g++ -Ofast -march=native -mtune=native -std=c++17 -Isource -obin/mKS source/mKS.cpp -llapack -lblas
+	g++ -O0 -g3 -std=c++17 -Isource -obin/mKS source/mKS.cpp -llapack -lblas
 
 bin/view: scripts/*
 	@mkdir -p bin
@@ -19,4 +19,4 @@ bin/view: scripts/*
 
 bin/test: test/* source/*
 	@mkdir -p bin
-	g++ -Ofast -march=native -mtune=native -std=c++17 -Itest -Isource -obin/test test/test.cpp -llapack -lblas
+	g++ -O0 -g3 -std=c++17 -Itest -Isource -obin/test test/test.cpp -llapack -lblas

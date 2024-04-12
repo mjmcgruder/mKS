@@ -77,6 +77,9 @@ int main(int argc, char** argv)
   BDF1 bdf1(geom, dt);
   BDF2 bdf2(geom, dt);
 
+  matvec_fd<BDF1> bdf1_linsys(bdf1, geom.size_st());
+  matvec_fd<BDF2> bdf2_linsys(bdf2, geom.size_st());
+
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());
 
@@ -93,11 +96,11 @@ int main(int argc, char** argv)
 
     if (it == 0)
     {
-      newton_solve(bdf1, state, geom.size_st(), settings, gwsp, nwsp);
+      newton_solve(bdf1_linsys, state, geom.size_st(), settings, gwsp, nwsp);
     }
     else
     {
-      newton_solve(bdf2, state, geom.size_st(), settings, gwsp, nwsp);
+      newton_solve(bdf2_linsys, state, geom.size_st(), settings, gwsp, nwsp);
     }
 
     bdf2.update_step(state);

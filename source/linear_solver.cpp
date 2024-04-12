@@ -9,10 +9,10 @@
 
 struct GMRES_settings
 {
-  usize  ninner;  // number of inner iterations
-  usize  nouter;  // number of outer iterations
-  double rtol;    // relative residual tolerance
-  double ctol;    // cutoff residual tolerance
+  usize  ninner = 10;    // number of inner iterations
+  usize  nouter = 10;    // number of outer iterations
+  double rtol   = 1e-4;  // relative residual tolerance
+  double ctol   = 1e-8;  // cutoff residual tolerance
 };
 
 

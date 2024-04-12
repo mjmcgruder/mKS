@@ -9,16 +9,40 @@
 #include "linalg.cpp"
 
 
-// Finds an appropriate perturbed state for finite difference based matrix
-// vector products. Returns the step size used if successful, returns DBL_MAX if
-// the norm of the perturbation direction "v" is zero.
+template<typename T>
+struct matvec_fd
+{
+  T& system;   // reference to object providing uresid routine
 
-double perturb_state(const double* uk, const double* v, const usize m, double* up)
+  usize   m;   // vector size
+
+  double* uk;  // current linearization state (not owned)
+  double* F;   // current function eval (at uk)
+
+  double* up;  // perturbed linearization state, for finite difference
+  double* Fp;  // perturbed state unsteady residual
+
+  void matvec(double* v, double* mv);
+  void update_guess(double* st);
+
+  matvec_fd(T& system_, usize m_);
+  ~matvec_fd();
+
+  matvec_fd(const matvec_fd& oth)            = delete;
+  matvec_fd(matvec_fd&& oth)                 = delete;
+  matvec_fd& operator=(const matvec_fd& oth) = delete;
+  matvec_fd& operator=(matvec_fd&& oth)      = delete;
+};
+
+
+template<typename T>
+void matvec_fd<T>::matvec(double* v, double* mv)
 {
   double l2vnorm = l2norm(v, m);
   if (l2vnorm < DBL_EPSILON)
   {
-    return DBL_MAX;
+    memset(mv, 0, m * sizeof(double));
+    return;
   }
 
   // step size calculation from:
@@ -43,217 +67,132 @@ double perturb_state(const double* uk, const double* v, const usize m, double* u
 
   for (usize i = 0; i < m; ++i) { up[i] = uk[i] + eps * v[i]; }
 
-  return eps;
-}
-
-
-class BDF1
-{
-  double*    uk;     // current nonlinear solve guess (not owned)
-
-  // previous state (multi step method)
-  double*    un;     // previous step
-  // solution information
-  comp_geom& geom;   // computational geometry
-  // perturbed workspace
-  double*    up;     // perturbed linearization state, for finite difference
-  double*    Fp;     // perturbed state unsteady residual
-  // steady residual worksapce
-  double*    resid;  // residual space
-  double*    f;      // steady residual
-
- public:
-
-  double* F;   // function eval for newton and Jacobian
-  double  dt;  // time step, available for pseudo transient continuation
-
-  // computational routines
-
-  void uresid(double* u, double* F);   // (unsteady) resiudal
-  void matvec(double* v, double* mv);  // jacobian vector product
-
-  // internal state update routines
-
-  void update_guess(double* st);
-  void update_step(double* st);
-
-  // --
-
-  BDF1(comp_geom& geom, double dt);
-  ~BDF1();
-
-  BDF1(const BDF1& oth)            = delete;
-  BDF1(BDF1&& oth)                 = delete;
-  BDF1& operator=(const BDF1& oth) = delete;
-  BDF1& operator=(BDF1&& oth)      = delete;
-};
-
-
-void BDF1::uresid(double* u, double* F)
-{
-  compute_residual(geom, u, resid, f);
-
-  for (usize i = 0; i < geom.size_st(); ++i)
-  {
-    F[i] = u[i] - un[i] - dt * f[i];
-  }
-}
-
-
-void BDF1::matvec(double* v, double* mv)
-{
-  double eps = perturb_state(uk, v, geom.size_st(), up);
-  if (eps == DBL_MAX)
-  {
-    memset(mv, 0, geom.size_st() * sizeof(double));
-    return;
-  }
-
-  uresid(up, Fp);
+  system.uresid(up, Fp);
 
   double ieps = 1. / eps;
-  for (usize i = 0; i < geom.size_st(); ++i) { mv[i] = (Fp[i] - F[i]) * ieps; }
+  for (usize i = 0; i < m; ++i) { mv[i] = (Fp[i] - F[i]) * ieps; }
 }
 
 
-void BDF1::update_guess(double* new_uk)
+template<typename T>
+void matvec_fd<T>::update_guess(double* new_uk)
 {
   uk = new_uk;
-  uresid(uk, F);
+  system.uresid(uk, F);
 }
 
 
-void BDF1::update_step(double* u)
+template<typename T>
+matvec_fd<T>::matvec_fd(T& system_, usize m_) : system(system_), m(m_)
 {
-  memcpy(un, u, geom.size_st() * sizeof(*u));
+  F  = new double[m];
+  up = new double[m];
+  Fp = new double[m];
 }
 
 
-BDF1::BDF1(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
+template<typename T>
+matvec_fd<T>::~matvec_fd()
 {
-  un    = new double[geom.size_st()];
-  resid = new double[geom.size_st()];
-  f     = new double[geom.size_st()];
-  up    = new double[geom.size_st()];
-  F     = new double[geom.size_st()];
-  Fp    = new double[geom.size_st()];
-}
-
-
-BDF1::~BDF1()
-{
-  delete[] un;
-  delete[] resid;
-  delete[] f;
-  delete[] up;
   delete[] F;
+  delete[] up;
   delete[] Fp;
 }
 
 
-class BDF2
+template<usize nstep>
+struct multi_step_store
 {
-  double*    uk;     // current nonlinear solve guess (not owned)
+  comp_geom& geom;
 
-  // previous state (multi step method)
-  double*    un;     // previous step
-  double*    unm1;   // previous previous step
-  // solution information
-  comp_geom& geom;   // computational geometry
-  // perturbed workspace
-  double*    up;     // perturbed linearization state, for finite difference
-  double*    Fp;     // perturbed state unsteady residual
-  // steady residual worksapce
-  double*    resid;  // residual space
-  double*    f;      // steady residual
+  double* unmx[nstep];  // stores most recent previous step last
 
- public:
+  double* resid;
+  double* f;
 
-  double* F;   // function eval for newton and Jacobian
-  double  dt;  // time step, available for pseudo transient continuation
+  void update(double* u)
+  {
+    for (usize i = 0; i < nstep - 1; ++i)
+    {
+      memcpy(unmx[i], unmx[i + 1], geom.size_st() * sizeof(*u));
+    }
+    memcpy(unmx[nstep - 1], u, geom.size_st() * sizeof(*u));
+  }
 
-  // computational routines
+  multi_step_store(comp_geom& geom_) : geom(geom_)
+  {
+    for (usize i = 0; i < nstep; ++i)
+    {
+      unmx[i] = new double[geom.size_st()];
+    }
 
-  void uresid(double* u, double* F);   // (unsteady) resiudal
-  void matvec(double* v, double* mv);  // jacobian vector product
+    resid = new double[geom.size_st()];
+    f     = new double[geom.size_st()];
+  }
 
-  // internal state update routines
+  ~multi_step_store()
+  {
+    for (usize i = 0; i < nstep; ++i)
+    {
+      delete[] unmx[i];
+    }
 
-  void update_guess(double* st);
-  void update_step(double* st);
+    delete[] resid;
+    delete[] f;
+  }
 
-  // --
-
-  BDF2(comp_geom& geom, double dt);
-  ~BDF2();
-
-  BDF2(const BDF2& oth)            = delete;
-  BDF2(BDF2&& oth)                 = delete;
-  BDF2& operator=(const BDF2& oth) = delete;
-  BDF2& operator=(BDF2&& oth)      = delete;
+  multi_step_store(const multi_step_store& oth)            = delete;
+  multi_step_store(multi_step_store&& oth)                 = delete;
+  multi_step_store& operator=(const multi_step_store& oth) = delete;
+  multi_step_store& operator=(multi_step_store&& oth)      = delete;
 };
 
 
-void BDF2::uresid(double* u, double* F)
+struct BDF1
 {
-  compute_residual(geom, u, resid, f);
+  multi_step_store<1> store;
+  double  dt;  // time step, available for pseudo transient continuation
 
-  for (usize i = 0; i < geom.size_st(); ++i)
+  void uresid(double* u, double* F)
   {
-    F[i] = 0.5 * unm1[i] - 2. * un[i] + 1.5 * u[i] - dt * f[i];
-  }
-}
+    compute_residual(store.geom, u, store.resid, store.f);
 
-
-void BDF2::matvec(double* v, double* mv)
-{
-  double eps = perturb_state(uk, v, geom.size_st(), up);
-  if (eps == DBL_MAX)
-  {
-    memset(mv, 0, geom.size_st() * sizeof(double));
-    return;
+    for (usize i = 0; i < store.geom.size_st(); ++i)
+    {
+      F[i] = u[i] - store.unmx[0][i] - dt * store.f[i];
+    }
   }
 
-  uresid(up, Fp);
+  void update_step(double* u)
+  {
+    store.update(u);
+  }
 
-  double ieps = 1. / eps;
-  for (usize i = 0; i < geom.size_st(); ++i) { mv[i] = (Fp[i] - F[i]) * ieps; }
-}
+  BDF1(comp_geom& geom_, double dt_) : store(geom_), dt(dt_)
+  {}
+};
 
 
-void BDF2::update_guess(double* new_uk)
+struct BDF2
 {
-  uk = new_uk;
-  uresid(uk, F);
-}
+  multi_step_store<2> store;
+  double  dt;  // time step, available for pseudo transient continuation
 
+  void uresid(double* u, double* F)
+  {
+    compute_residual(store.geom, u, store.resid, store.f);
 
-void BDF2::update_step(double* u)
-{
-  memcpy(unm1, un, geom.size_st() * sizeof(*un));
-  memcpy(un, u, geom.size_st() * sizeof(*u));
-}
+    for (usize i = 0; i < store.geom.size_st(); ++i)
+    {
+      F[i] = 0.5 * store.unmx[0][i] - 2. * store.unmx[1][i] + 1.5 * u[i] - dt * store.f[i];
+    }
+  }
 
+  void update_step(double* u)
+  {
+    store.update(u);
+  }
 
-BDF2::BDF2(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
-{
-  un    = new double[geom.size_st()];
-  unm1  = new double[geom.size_st()];
-  resid = new double[geom.size_st()];
-  f     = new double[geom.size_st()];
-  up    = new double[geom.size_st()];
-  F     = new double[geom.size_st()];
-  Fp    = new double[geom.size_st()];
-}
-
-
-BDF2::~BDF2()
-{
-  delete[] un;
-  delete[] unm1;
-  delete[] resid;
-  delete[] f;
-  delete[] up;
-  delete[] F;
-  delete[] Fp;
-}
+  BDF2(comp_geom& geom_, double dt_) : store(geom_), dt(dt_)
+  {}
+};
