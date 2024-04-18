@@ -205,6 +205,7 @@ void read_input(const char* filename,
     {
       case itype_int:
         *((int*)optinfo.addr) = atoi(val);
+        break;
       case itype_usize:
         *((usize*)optinfo.addr) = (usize)strtoull(val, nullptr, 10);
         break;

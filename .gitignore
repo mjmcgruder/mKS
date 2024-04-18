@@ -1,12 +1,10 @@
-# local dirs
+# local files
 bin
-
-# clangd
-.cache
-compile_commands.json
+local.mk
 
 # python
 *__pycache__*
 
-# python-lsp-server
-.ropeproject
+# clangd
+.cache
+compile_commands.json
