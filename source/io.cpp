@@ -8,6 +8,28 @@
 #include "geometry.cpp"
 
 
+// VERBOSITY PRINT
+
+
+// 0 (or less): print nothing
+// 1          : print almost nothing
+// 2          : print a little
+// 3 (or more): print a lot
+static int VERBOSITY = 3;
+
+
+#define vrbprintf(vrb, ...) \
+  {                         \
+    if ((vrb) <= VERBOSITY) \
+    {                       \
+      printf(__VA_ARGS__);  \
+    }                       \
+  }
+
+
+// SOLUTION STORAGE
+
+
 void write_hist(comp_geom& geom, double* hist, usize nt, double dt,
                 const char* filename)
 {
@@ -25,8 +47,12 @@ void write_hist(comp_geom& geom, double* hist, usize nt, double dt,
 }
 
 
+// INPUT FILE OPTIONS
+
+
 enum input_type
 {
+  itype_int,
   itype_usize,
   itype_double
 };
@@ -39,6 +65,12 @@ struct option
   const char* desc;
 };
 
+
+
+option mkopt(int& data, const char* desc)
+{
+  return {itype_int, &data, desc};
+}
 
 option mkopt(usize& data, const char* desc)
 {
@@ -59,6 +91,9 @@ struct option_comp
     else                  { return false; }
   }
 };
+
+
+// INPUT FILE PARSING
 
 
 #define LINE_BUF_SIZE 256
@@ -168,6 +203,8 @@ void read_input(const char* filename,
 
     switch (optinfo.type)
     {
+      case itype_int:
+        *((int*)optinfo.addr) = atoi(val);
       case itype_usize:
         *((usize*)optinfo.addr) = (usize)strtoull(val, nullptr, 10);
         break;

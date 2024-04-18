@@ -52,6 +52,7 @@ int main(int argc, char** argv)
   options.emplace("solve_gmres_ctol",   mkopt(settings.gmres.ctol,   "cutoff linear residual tolerance"));
   options.emplace("solve_tol",          mkopt(settings.nonlin_tol,   "nonlinear residual tolerance"));
   options.emplace("solve_iters",        mkopt(settings.max_iter,     "max noninear iterations per time step"));
+  options.emplace("verbosity",          mkopt(VERBOSITY,             "verbosity level [0, 3]"));
 
   if (strcmp(argv[1], "-h") == 0)
   {
@@ -88,9 +89,9 @@ int main(int argc, char** argv)
 
   for (usize it = 0; it < nt; ++it)
   {
-    printf("\n\n");
-    printf("TIME STEP %zu\n", it);
-    printf("\n\n");
+    vrbprintf(2, "\n");
+    vrbprintf(1, "TIME STEP %zu\n", it);
+    vrbprintf(2, "\n");
 
     memcpy(hist + it * geom.size_st(), state, geom.size_st() * sizeof(double));
 

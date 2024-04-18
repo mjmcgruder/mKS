@@ -108,7 +108,7 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
   system.update_guess(x);
 
   double nonlinear_residual = l2norm(system.F, m);
-  printf("nonlinear residual: %+.17e\n", nonlinear_residual);
+  vrbprintf(2, "nonlinear residual: %+.8e\n", nonlinear_residual);
 
   usize newton_iters = 0;
   while (nonlinear_residual > settings.nonlin_tol &&
@@ -124,8 +124,8 @@ void newton_solve(T& system, double* x, usize m, newton_settings& settings,
     system.update_guess(x);
 
     nonlinear_residual = l2norm(system.F, m);
-    printf("finished nonlinear iter: %zu --- residual: %+.17e\n\n",
-           newton_iters, nonlinear_residual);
+    vrbprintf(2, "finished nonlinear iter: %zu --- residual: %+.8e\n",
+              newton_iters, nonlinear_residual);
 
     ++newton_iters;
   }

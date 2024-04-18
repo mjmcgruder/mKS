@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "linalg.cpp"
+#include "io.cpp"
 
 
 struct GMRES_settings
@@ -115,7 +116,7 @@ void GMRES(T& A, double* b, double* x, usize m,
 
     if (o == 0) {reference_resid = r0_norm; }
 
-    printf("  %*zu : %.8e --- ", wsp.pw_out, o + 1, r0_norm);
+    vrbprintf(3, "  %*zu : %.8e --- ", wsp.pw_out, o + 1, r0_norm);
 
     // RHS setup
     memset(wsp.betae, 0, (set.ninner + 1) * sizeof(double));
@@ -208,11 +209,11 @@ void GMRES(T& A, double* b, double* x, usize m,
 
     bool residuals_agree = isconverged_krylov && isconverged_full;
 
-    printf("%*zu : %.8e (%.8e)", wsp.pw_inn, n + 1, resid_full, resid_krylov);
+    vrbprintf(3, "%*zu : %.8e (%.8e)", wsp.pw_inn, n + 1, resid_full, resid_krylov);
 
-    if (isconverged_krylov && !residuals_agree) { printf(" d"); }
+    if (isconverged_krylov && !residuals_agree) { vrbprintf(3, " d"); }
 
-    printf("\n");
+    vrbprintf(3, "\n");
 
     if (residuals_agree)
     {
