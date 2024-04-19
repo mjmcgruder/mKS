@@ -8,3 +8,6 @@ local.mk
 # clangd
 .cache
 compile_commands.json
+
+# outputs
+*.pdf

@@ -1,3 +1,5 @@
+MAKEFLAGS += -j
+
 CXXFLAGS = -std=c++17
 LDFLAGS  =
 LDLIBS   =

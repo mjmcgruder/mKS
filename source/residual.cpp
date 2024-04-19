@@ -136,7 +136,7 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
       sr     = geom.value_r;
       sr_x   = geom.deriv_r;
       sr_xx  = sl_xx;
-      sr_xxx = sr_xxx;
+      sr_xxx = sl_xxx;
     }
 
     double ihl = 1. / geom.elem_len(el);
@@ -185,7 +185,7 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         // nonlinear term
         geom.idx_st(resid, el, ti) += tl * nl_flux;
         // second order viscous term
-        geom.idx_st(resid, el, ti) += tl_x * iJ * dc_fl;
+        geom.idx_st(resid, el, ti) += tl_x * dc_fl;
         geom.idx_st(resid, el, ti) += tl * qh * +1.;
         // fourth order viscous term
         geom.idx_st(resid, el, ti) +=
@@ -207,7 +207,7 @@ void compute_residual(comp_geom& geom, double* state, double* resid, double* f)
         // nonlinear term
         geom.idx_st(resid, er, ti) -= tr * nl_flux;
         // second order viscous term
-        geom.idx_st(resid, er, ti) += tr_x * iJ * dc_fr;
+        geom.idx_st(resid, er, ti) += tr_x * dc_fr;
         geom.idx_st(resid, er, ti) += tr * qh * -1.;
         // fourth order viscous term
         geom.idx_st(resid, er, ti) +=

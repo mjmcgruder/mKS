@@ -148,6 +148,28 @@ struct multi_step_store
 };
 
 
+struct time_scheme_steady
+{
+  comp_geom& geom;
+
+  double* resid;
+
+  void uresid(double* u, double* F)
+  {
+    compute_residual(geom, u, resid, F);
+  }
+
+  time_scheme_steady(comp_geom& geom_) : geom(geom_)
+  {
+    resid = new double[geom.size_st()];
+  }
+  ~time_scheme_steady()
+  {
+    delete[] resid;
+  }
+};
+
+
 struct BDF1
 {
   multi_step_store<1> store;

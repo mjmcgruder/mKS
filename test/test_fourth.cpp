@@ -57,63 +57,52 @@ double manufactured_source_4(double x)
 }
 
 
-int test_convergence()
+struct manufactured_result
 {
-  usize ne = 16;
-  usize p  = 2;
+  double unsteady_residual;
+  double solution_error;
+};
 
-  double nc  = 0.;
-  double nu2 = 0.;
-  double nu4 = 1.;
-  double eta = 8.;
-  double sig = 729.;
-  double tau = 9.;
+
+manufactured_result test_manufactured(comp_geom& geom, usize ne, usize p)
+{
+  manufactured_result result;
+
+  // options
 
   newton_settings settings;
   settings.gmres.ninner = ne * (p + 1);
   settings.gmres.nouter = 10;
   settings.gmres.rtol   = 1e-4;
-  settings.gmres.ctol   = 1e-11;
+  settings.gmres.ctol   = 1e-12;
   settings.nonlin_tol   = 1e-10;
-  settings.max_iter     = 10;
+  settings.max_iter     = 20;
 
-  double l = 2. * PI;
-
-  comp_geom geom(l, ne, p,
-                 nc, nu2, nu4, eta, sig, tau,
-                 dirichlet, gaussian_func(0.), gaussian_func(l),
-                 gaussian_deriv(0.), gaussian_deriv(l),
-                 manufactured_source_4);
+  // initialization
 
   double* state = new double[geom.size_st()];
 
   init_constant(geom, 0.5, state);
 
-  BDF1 bdf1(geom, 0.01);
-  matvec_fd<BDF1> bdf1_linsys(bdf1, geom.size_st());
+  time_scheme_steady steady(geom);
+  matvec_fd<time_scheme_steady> steady_linsys(steady, geom.size_st());
 
   newton_workspace nwsp(geom.size_st());
   GMRES_workspace  gwsp(settings.gmres, geom.size_st());
 
-  bdf1.update_step(state);
+  // converging
 
-  double t = 0;
-  for (usize it = 0; it < 128; ++it)
-  {
-    printf("\n\n");
-    printf("TIME STEP %zu, t = %f, dt = %f\n", it, t, bdf1.dt);
-    printf("\n\n");
+  newton_solve(steady_linsys, state, geom.size_st(), settings, gwsp, nwsp);
 
-    newton_solve(bdf1_linsys, state, geom.size_st(), settings, gwsp, nwsp);
+  // find final residual
 
-    bdf1.update_step(state);
+  double* F = new double[geom.size_st()];
 
-    t       += bdf1.dt;
-    // if (bdf1.dt < 1.)
-    // {
-    bdf1.dt *= 1.05;
-    // }
-  }
+  // bdf1.uresid(state, F);
+  steady.uresid(state, F);
+  result.unsteady_residual = l2norm(F, geom.size_st());
+
+  delete[] F;
 
   // calculate error ---
 
@@ -147,15 +136,59 @@ int test_convergence()
     }
   }
 
-  err = sqrt(err);
+  result.solution_error = sqrt(err);
 
   delete[] b_eval;
 
-  printf("L2 error: %.17e\n", err);
+  return result;
+}
 
-  write_hist(geom, state, 1., 1., "convergence_test.ks");
 
-  delete[] state;
+int test_convergence()
+{
+  double l = 2. * PI;
+
+  printf("second order diffusion test:\n\n");
+
+  for (usize p = 1; p <= 4; ++p)
+  {
+    for (usize ne = 8; ne <= 256; ne *= 2)
+    {
+      comp_geom geom(l, ne, p,
+                     0., -1., 0., 8., 729., 9.,
+                     dirichlet,
+                     gaussian_func(0.), gaussian_func(l),
+                     gaussian_deriv(0.), gaussian_deriv(l),
+                     manufactured_source_2);
+
+      manufactured_result res = test_manufactured(geom, ne, p);
+      printf("p: %lu, ne: %3lu, resid: %.8e, error: %.8e\n",
+             p, ne, res.unsteady_residual, res.solution_error);
+    }
+    printf("\n");
+  }
+
+  printf("fourth order diffusion test:\n\n");
+
+  for (usize p = 2; p <= 4; ++p)
+  {
+    for (usize ne = 8; ne <= 128; ne *= 2)
+    {
+      comp_geom geom(l, ne, p,
+                     0., 0., 1., 8., 729., 9.,
+                     dirichlet,
+                     gaussian_func(0.), gaussian_func(l),
+                     gaussian_deriv(0.), gaussian_deriv(l),
+                     manufactured_source_4);
+
+      manufactured_result res = test_manufactured(geom, ne, p);
+      printf("p: %lu, ne: %3lu, resid: %.8e, error: %.8e\n",
+             p, ne, res.unsteady_residual, res.solution_error);
+    }
+    printf("\n");
+  }
+
+  printf("\n");
 
   return 0;
 }
