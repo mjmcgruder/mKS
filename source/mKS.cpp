@@ -1,7 +1,5 @@
 #include "initialization.cpp"
 #include "io.cpp"
-#include "time.cpp"
-#include "time_schemes.cpp"
 
 
 int main(int argc, char** argv)
@@ -17,8 +15,9 @@ int main(int argc, char** argv)
   usize  ne  = 8;
   usize  p   = 3;
   // time
-  usize  nt = 100;
-  double dt = 1e-1;
+  usize nt                   = 100;
+  double dt                  = 1e-1;
+  evolution_scheme evoscheme = evolution_scheme::bdf2;
   // equation
   double nc  = 1.;
   double nu2 = 1.;
@@ -40,6 +39,7 @@ int main(int argc, char** argv)
   options.emplace("geom_p",             mkopt(p,                     "polynomial order"));
   options.emplace("time_nstep",         mkopt(nt,                    "number of time steps"));
   options.emplace("time_dt",            mkopt(dt,                    "time step size"));
+  options.emplace("time_scheme",        mkopt(evoscheme,             "time scheme (rk4, bdf2)"));
   options.emplace("eqn_nc",             mkopt(nc,                    "nonlinear coefficient"));
   options.emplace("eqn_nu2",            mkopt(nu2,                   "second order viscosity coefficient"));
   options.emplace("eqn_nu4",            mkopt(nu4,                   "fourth order viscosity coefficient"));
@@ -75,39 +75,18 @@ int main(int argc, char** argv)
 
   /* TIME STEPPING */
 
-  BDF1 bdf1(geom, dt);
-  BDF2 bdf2(geom, dt);
-
-  matvec_fd<BDF1> bdf1_linsys(bdf1, geom.size_st());
-  matvec_fd<BDF2> bdf2_linsys(bdf2, geom.size_st());
-
-  newton_workspace nwsp(geom.size_st());
-  GMRES_workspace  gwsp(settings.gmres, geom.size_st());
-
-  bdf1.update_step(state);
-  bdf2.update_step(state);
-
-  for (usize it = 0; it < nt; ++it)
+  switch (evoscheme)
   {
-    vrbprintf(2, "\n");
-    vrbprintf(1, "TIME STEP %zu\n", it);
-    vrbprintf(2, "\n");
-
-    memcpy(hist + it * geom.size_st(), state, geom.size_st() * sizeof(double));
-
-    if (it == 0)
-    {
-      newton_solve(bdf1_linsys, state, geom.size_st(), settings, gwsp, nwsp);
-    }
-    else
-    {
-      newton_solve(bdf2_linsys, state, geom.size_st(), settings, gwsp, nwsp);
-    }
-
-    bdf2.update_step(state);
+    case evolution_scheme::bdf2:
+      evolve_bdf2(geom, nt, dt, settings, state, hist);
+      break;
+    case evolution_scheme::rk4:
+      evolve_rk4(geom, nt, dt, state, hist);
+      break;
+    default:
+      printf("no time stepping?\n");
+      break;
   }
-
-  memcpy(hist + nt * geom.size_st(), state, geom.size_st() * sizeof(double));
 
   write_hist(geom, hist, (nt + 1), dt, "hist.ks");
 

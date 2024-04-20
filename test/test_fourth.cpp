@@ -82,7 +82,8 @@ manufactured_result test_manufactured(comp_geom& geom, usize ne, usize p)
 
   double* state = new double[geom.size_st()];
 
-  init_constant(geom, 0.5, state);
+  // init_constant(geom, 0.5, state);
+  init_gaussian(geom, GAUSSIAN_A, GAUSSIAN_B, GAUSSIAN_C, state);
 
   time_scheme_steady steady(geom);
   matvec_fd<time_scheme_steady> steady_linsys(steady, geom.size_st());
@@ -98,7 +99,6 @@ manufactured_result test_manufactured(comp_geom& geom, usize ne, usize p)
 
   double* F = new double[geom.size_st()];
 
-  // bdf1.uresid(state, F);
   steady.uresid(state, F);
   result.unsteady_residual = l2norm(F, geom.size_st());
 

@@ -6,25 +6,7 @@
 
 
 #include "geometry.cpp"
-
-
-// VERBOSITY PRINT
-
-
-// 0 (or less): print nothing
-// 1          : print almost nothing
-// 2          : print a little
-// 3 (or more): print a lot
-static int VERBOSITY = 3;
-
-
-#define vrbprintf(vrb, ...) \
-  {                         \
-    if ((vrb) <= VERBOSITY) \
-    {                       \
-      printf(__VA_ARGS__);  \
-    }                       \
-  }
+#include "time.cpp"
 
 
 // SOLUTION STORAGE
@@ -54,7 +36,8 @@ enum input_type
 {
   itype_int,
   itype_usize,
-  itype_double
+  itype_double,
+  itype_evolution_scheme
 };
 
 
@@ -82,6 +65,11 @@ option mkopt(double& data, const char* desc)
   return {itype_double, &data, desc};
 }
 
+option mkopt(evolution_scheme& data, const char* desc)
+{
+  return {itype_evolution_scheme, &data, desc};
+}
+
 
 struct option_comp
 {
@@ -91,6 +79,29 @@ struct option_comp
     else                  { return false; }
   }
 };
+
+
+// OPTION PARSING SUPPORT
+
+
+int small_map_lookup(const char* key, const char* map[], int map_size,
+                     const char* option_name)
+{
+  for (int i = 0; i < map_size; ++i)
+  {
+    if (strcmp(key, map[i]) == 0) { return i; }
+  }
+
+  printf("unknown %s \"%s\"\n  options are: ", option_name, key);
+  for (int i = 0; i < (int)evolution_scheme::count; ++i)
+  {
+    printf("%s ", evolution_scheme_map[i]);
+  }
+  printf("\n");
+  exit(1);
+
+  return -1;
+}
 
 
 // INPUT FILE PARSING
@@ -211,6 +222,10 @@ void read_input(const char* filename,
         break;
       case itype_double:
         *((double*)optinfo.addr) = strtod(val, nullptr);
+        break;
+      case itype_evolution_scheme:
+        *((evolution_scheme*)optinfo.addr) = (evolution_scheme)small_map_lookup(
+        val, evolution_scheme_map, (int)evolution_scheme::count, "time scheme");
         break;
     }
   }
