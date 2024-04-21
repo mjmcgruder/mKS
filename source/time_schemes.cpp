@@ -218,3 +218,57 @@ struct BDF2
   BDF2(comp_geom& geom_, double dt_) : store(geom_), dt(dt_)
   {}
 };
+
+
+const double alpha = (2. / sqrt(3.)) * cos(PI / 18.);
+
+
+struct DIRK_wrksp
+{
+  const double* yn;  // (not owned) pointer to current state
+
+  comp_geom&    geom;
+  double        dt;
+
+  double*       u;
+  double*       resid;
+  double*       f;
+
+  DIRK_wrksp(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
+  {
+    u     = new double[geom.size_st()];
+    resid = new double[geom.size_st()];
+    f     = new double[geom.size_st()];
+  }
+
+  ~DIRK_wrksp()
+  {
+    delete[] u;
+    delete[] resid;
+    delete[] f;
+  }
+};
+
+
+struct DIRK_1
+{
+  DIRK_wrksp& wrk;
+
+  void uresid(double* k1, double* F)
+  {
+    for (usize i = 0; i < wrk.geom.size_st(); ++i)
+    {
+      wrk.u[i] = wrk.yn[i] + wrk.dt * 0.5 * (1. + alpha) * k1[i];
+    }
+
+    compute_residual(wrk.geom, wrk.u, wrk.resid, wrk.f);
+
+    for (usize i = 0; i < wrk.geom.size_st(); ++i)
+    {
+      F[i] = k1[i] - wrk.f[i];
+    }
+  }
+
+  DIRK_1(DIRK_wrksp& wrk_) : wrk(wrk_)
+  {}
+};
