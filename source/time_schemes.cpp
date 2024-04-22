@@ -220,9 +220,6 @@ struct BDF2
 };
 
 
-const double alpha = (2. / sqrt(3.)) * cos(PI / 18.);
-
-
 struct DIRK_wrksp
 {
   const double* yn;  // (not owned) pointer to current state
@@ -234,7 +231,8 @@ struct DIRK_wrksp
   double*       resid;
   double*       f;
 
-  DIRK_wrksp(comp_geom& geom_, double dt_) : geom(geom_), dt(dt_)
+  DIRK_wrksp(comp_geom& geom_, double dt_, double* yn_) :
+  yn(yn_), geom(geom_), dt(dt_)
   {
     u     = new double[geom.size_st()];
     resid = new double[geom.size_st()];
@@ -250,7 +248,10 @@ struct DIRK_wrksp
 };
 
 
-struct DIRK_1
+const double DIRK34_alpha = (2. / sqrt(3.)) * cos(PI / 18.);
+
+
+struct DIRK34_1
 {
   DIRK_wrksp& wrk;
 
@@ -258,7 +259,7 @@ struct DIRK_1
   {
     for (usize i = 0; i < wrk.geom.size_st(); ++i)
     {
-      wrk.u[i] = wrk.yn[i] + wrk.dt * 0.5 * (1. + alpha) * k1[i];
+      wrk.u[i] = wrk.yn[i] + wrk.dt * 0.5 * (1. + DIRK34_alpha) * k1[i];
     }
 
     compute_residual(wrk.geom, wrk.u, wrk.resid, wrk.f);
@@ -269,6 +270,65 @@ struct DIRK_1
     }
   }
 
-  DIRK_1(DIRK_wrksp& wrk_) : wrk(wrk_)
+  DIRK34_1(DIRK_wrksp& wrk_) :
+  wrk(wrk_)
+  {}
+};
+
+
+struct DIRK34_2
+{
+  DIRK_wrksp& wrk;
+  double*     k1;
+
+  void uresid(double* k2, double* F)
+  {
+    for (usize i = 0; i < wrk.geom.size_st(); ++i)
+    {
+      wrk.u[i] = wrk.yn[i] +
+                 wrk.dt * (-0.5 * DIRK34_alpha * k1[i] +
+                            0.5 * (1. + DIRK34_alpha) * k2[i]);
+    }
+
+    compute_residual(wrk.geom, wrk.u, wrk.resid, wrk.f);
+
+    for (usize i = 0; i < wrk.geom.size_st(); ++i)
+    {
+      F[i] = k2[i] - wrk.f[i];
+    }
+  }
+
+  DIRK34_2(DIRK_wrksp& wrk_, double* k1_) :
+  wrk(wrk_), k1(k1_)
+  {}
+};
+
+
+struct DIRK34_3
+{
+  DIRK_wrksp& wrk;
+  double*     k1;
+  double*     k2;
+
+  void uresid(double* k3, double* F)
+  {
+    for (usize i = 0; i < wrk.geom.size_st(); ++i)
+    {
+      wrk.u[i] = wrk.yn[i] +
+                 wrk.dt * ((1. + DIRK34_alpha) * k1[i] -
+                           (1. + 2. * DIRK34_alpha) * k2[i] +
+                           0.5 * (1. + DIRK34_alpha) * k3[i]);
+    }
+
+    compute_residual(wrk.geom, wrk.u, wrk.resid, wrk.f);
+
+    for (usize i = 0; i < wrk.geom.size_st(); ++i)
+    {
+      F[i] = k3[i] - wrk.f[i];
+    }
+  }
+
+  DIRK34_3(DIRK_wrksp& wrk_, double* k1_, double* k2_) :
+  wrk(wrk_), k1(k1_), k2(k2_)
   {}
 };

@@ -83,13 +83,15 @@ enum struct evolution_scheme
 {
   rk4,
   bdf2,
+  dirk34,
   count
 };
 
 const char* evolution_scheme_map[(int)evolution_scheme::count] =
 {
   "rk4",
-  "bdf2"
+  "bdf2",
+  "dirk34"
 };
 
 
@@ -183,4 +185,58 @@ void evolve_bdf2(comp_geom& geom, usize nt, double dt, newton_settings& settings
   }
 
   memcpy(hist + nt * geom.size_st(), state, geom.size_st() * sizeof(double));
+}
+
+
+void evolve_dirk34(comp_geom& geom, usize nt, double dt,
+                   newton_settings& settings, double* state, double* hist)
+{
+  newton_workspace nwsp(geom.size_st());
+  GMRES_workspace  gwsp(settings.gmres, geom.size_st());
+  DIRK_wrksp       dirk_wsp(geom, dt, state);
+
+  double* k1 = new double[geom.size_st()];
+  double* k2 = new double[geom.size_st()];
+  double* k3 = new double[geom.size_st()];
+
+  DIRK34_1 step1(dirk_wsp);
+  DIRK34_2 step2(dirk_wsp, k1);
+  DIRK34_3 step3(dirk_wsp, k1, k2);
+
+  matvec_fd<DIRK34_1> step1_linsys(step1, geom.size_st());
+  matvec_fd<DIRK34_2> step2_linsys(step2, geom.size_st());
+  matvec_fd<DIRK34_3> step3_linsys(step3, geom.size_st());
+
+  for (usize it = 0; it < nt; ++it)
+  {
+    vrbprintf(2, "\n");
+    vrbprintf(1, "TIME STEP %zu\n", it);
+    vrbprintf(2, "\n");
+
+    memcpy(hist + it * geom.size_st(), state, geom.size_st() * sizeof(double));
+
+    memset(k1, 0, geom.size_st() * sizeof(*k1));  // is this the best guess?
+    memset(k2, 0, geom.size_st() * sizeof(*k2));  // or no guess, just last state?
+    memset(k3, 0, geom.size_st() * sizeof(*k3));
+
+    newton_solve(step1_linsys, k1, geom.size_st(), settings, gwsp, nwsp);
+    newton_solve(step2_linsys, k2, geom.size_st(), settings, gwsp, nwsp);
+    newton_solve(step3_linsys, k3, geom.size_st(), settings, gwsp, nwsp);
+
+    double sixth  = 1. / 6.;
+    double third  = 1. / 3.;
+    double ialph2 = 1. / (DIRK34_alpha * DIRK34_alpha);
+    for (usize i = 0; i < geom.size_st(); ++i)
+    {
+      state[i] += dt * (sixth * ialph2 * k1[i] +
+                        (1. - third * ialph2) * k2[i] +
+                        sixth * ialph2 * k3[i]);
+    }
+  }
+
+  memcpy(hist + nt * geom.size_st(), state, geom.size_st() * sizeof(double));
+
+  delete[] k1;
+  delete[] k2;
+  delete[] k3;
 }

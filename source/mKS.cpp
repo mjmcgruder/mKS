@@ -83,6 +83,9 @@ int main(int argc, char** argv)
     case evolution_scheme::rk4:
       evolve_rk4(geom, nt, dt, state, hist);
       break;
+    case evolution_scheme::dirk34:
+      evolve_dirk34(geom, nt, dt, settings, state, hist);
+      break;
     default:
       printf("no time stepping?\n");
       break;
