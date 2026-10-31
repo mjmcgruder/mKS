@@ -23,3 +23,5 @@ Finally
 ```
 make
 ```
+
+The binary and a link to the visualization script should now be in `./bin`.
